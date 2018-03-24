@@ -6,30 +6,49 @@
     android:layout_height="match_parent"
     tools:context="rjdgtn.csms.MainActivity">
 
-    <TextView
-        android:id="@+id/sample_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.329" />
+        tools:layout_editor_absoluteX="8dp">
 
-    <Switch
-        android:id="@+id/switch1"
-        android:layout_width="171dp"
-        android:layout_height="22dp"
-        android:layout_marginStart="92dp"
-        android:layout_marginTop="32dp"
-        android:checked="false"
-        android:splitTrack="false"
-        android:text="Launcher Service"
-        android:textOff="off"
-        android:textOn="on"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/sample_text"
-        tools:checked="false" />
+        <Switch
+            android:id="@+id/switch1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Launcher control"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Worker status"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+            <CheckBox
+                android:id="@+id/checkbox1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:checked="false"
+                android:focusable="false"
+                android:clickable="false" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="Test status"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

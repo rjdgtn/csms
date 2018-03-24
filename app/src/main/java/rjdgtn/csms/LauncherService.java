@@ -10,8 +10,12 @@ import android.os.IBinder;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class LauncherService extends Service {
+    private Timer timer;
+
     public static boolean isRunning(Context context) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -20,8 +24,8 @@ public class LauncherService extends Service {
             }
         }
         return false;
-
     }
+
     public static boolean shouldAutoStart(Context context) {
         String[] lst = context.getFilesDir().list();
         return Arrays.asList(lst).contains("autostart");
@@ -51,16 +55,42 @@ public class LauncherService extends Service {
     }
 
     public void onCreate() {
+        super.onCreate();
+
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentTitle("tatata")
-                .setContentText("lalala");
+                .setContentTitle("CSMS")
+                .setContentText("Launcher active");
         Notification notification = builder.build();
         startForeground(777, notification);
 
+        timer = new Timer();
+        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 5000);
     }
+
+
+    public void onDestroy() {
+        timer.cancel();
+        WorkerService.stop(getApplicationContext());
+        super.onDestroy();
+    }
+
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+}
+
+class CheckWorkerTask extends TimerTask {
+    Context context;
+    CheckWorkerTask(Context c) {
+        context = c;
+    }
+
+    @Override
+    public void run() {
+        if (!WorkerService.isRunning(context)) {
+            WorkerService.start(context);
+        }
     }
 }

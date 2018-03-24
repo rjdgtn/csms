@@ -5,9 +5,13 @@ import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
@@ -28,6 +32,17 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));
 
+        TimerTask schedulerTask = new TimerTask() {
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        onUpdate(); // this action have to be in UI thread
+                    }
+                });
+            }
+        };
+        Timer scheduler = new Timer();
+        scheduler.schedule(schedulerTask, 0, 1000);
     }
 
     /**
@@ -48,4 +63,21 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         }
     }
 
+    public void onUpdate() {
+        ((CheckBox)findViewById(R.id.checkbox1)).setChecked(WorkerService.isRunning(getApplicationContext()));
+    }
 }
+
+//class ActivityUpdater extends TimerTask {
+//    Context context;
+//    CheckWorkerTask(Context c) {
+//        context = c;
+//    }
+//
+//    @Override
+//    public void run() {
+//        if (!WorkerService.isRunning(context)) {
+//            WorkerService.start(context);
+//        }
+//    }
+//}
