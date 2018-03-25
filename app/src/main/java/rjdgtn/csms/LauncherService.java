@@ -6,12 +6,15 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class LauncherService extends Service {
     private Timer timer;
@@ -55,6 +58,7 @@ public class LauncherService extends Service {
     }
 
     public void onCreate() {
+        Log.d("CSMS", "LAUNCHER create");
         super.onCreate();
 
         Notification.Builder builder = new Notification.Builder(this)
@@ -73,24 +77,27 @@ public class LauncherService extends Service {
         timer.cancel();
         WorkerService.stop(getApplicationContext());
         super.onDestroy();
+        Log.d("CSMS", "LAUNCHER destroy");
     }
 
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
     }
-}
 
-class CheckWorkerTask extends TimerTask {
-    Context context;
-    CheckWorkerTask(Context c) {
-        context = c;
-    }
+    class CheckWorkerTask extends TimerTask {
+        Context context;
+        CheckWorkerTask(Context c) {
+            context = c;
+        }
 
-    @Override
-    public void run() {
-        if (!WorkerService.isRunning(context)) {
-            WorkerService.start(context);
+        @Override
+        public void run() {
+            if (!WorkerService.isRunning(context)) {
+                WorkerService.start(context);
+            }
         }
     }
 }
+
+

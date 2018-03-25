@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -12,6 +13,14 @@ import android.widget.TextView;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
@@ -52,7 +61,14 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     public native String stringFromJNI();
 
     protected void OnClick(View view) {
-        rjdgtn.csms.LauncherService.start(getApplicationContext());
+//        TransportTask transportTask = new TransportTask();
+//        ProcessorTask processorTask = new ProcessorTask();
+//
+//        processorTask.execute();
+//        transportTask.execute();
+        //rjdgtn.csms.LauncherService.start(getApplicationContext());
+//        Thread thread;
+//        thread.interrupt();
     }
 
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
