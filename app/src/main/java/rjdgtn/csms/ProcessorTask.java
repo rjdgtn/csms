@@ -12,10 +12,12 @@ import static java.lang.Thread.sleep;
  */
 
 public class ProcessorTask implements Runnable {
-    private BlockingQueue<Packet> in;
-    private BlockingQueue<Packet> out;
+    public BlockingQueue<Request> inQueue;
+    public BlockingQueue<Request> outQueue;
 
-    public ProcessorTask() {
+    public ProcessorTask(BlockingQueue<Request> in, BlockingQueue<Request> out) {
+        inQueue = in;
+        outQueue = out;
         Log.d("CSMS", "PROCESSOR create");
     }
 

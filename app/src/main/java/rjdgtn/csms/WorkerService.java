@@ -55,7 +55,7 @@ public class WorkerService extends Service {
         startForeground(999, notification);
 
         transportTask = new TransportTask();
-        processorTask = new ProcessorTask();
+        processorTask = new ProcessorTask(transportTask.inQueue, transportTask.outQueue);
 
         transportThread = new Thread(transportTask);
         transportThread.start();
