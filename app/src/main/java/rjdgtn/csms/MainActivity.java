@@ -36,7 +36,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
         // Example of a call to a native method
 //        TextView tv = (TextView) findViewById(R.id.sample_text);
-//        tv.setText(stringFromJNI());
+//        tv.setText();
+        stringFromJNI();
 
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));

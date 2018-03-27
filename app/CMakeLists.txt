@@ -17,6 +17,8 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
+			 src/main/cpp/DtmfDetector.cpp
+			 src/main/cpp/DtmfGenerator.cpp
              src/main/cpp/native-lib.cpp )
 
 # Searches for a specified prebuilt library and stores the path as a
