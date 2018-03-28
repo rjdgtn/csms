@@ -5,18 +5,36 @@
 #include "DtmfDetector.hpp"
 #include "DtmfGenerator.hpp"
 
-const INT32 FRAME_SIZE = 25000;
+extern "C" {
+#include "dtmf.h"
+}
+
+const INT32 FRAME_SIZE = 320;
 DtmfDetector* detector = nullptr;
 
+static std::string str;
 void detectorInit() {
-    if (!detector) detector = new DtmfDetector(FRAME_SIZE);
+    if (!detector) {
+        detector = new DtmfDetector(FRAME_SIZE);
+
+        DTMFSetup(SAMPLING_RATE, BUFFER_SIZE);
+        str.clear();
+    }
 }
 
 std::string decode(short* data, int size) {
     detectorInit();
     //detector->zerosIndexDialButton();
-    detector->dtmfDetecting(data);
-    return std::string(detector->getDialButtonsArray(), detector->getIndexDialButtons());
+    //detector->Detect(data, size);
+
+
+    static char code;
+
+    DTMFDecode(data, size/* * sizeof(short)*/, &code);
+
+    if(code != NO_CODE && (str.empty() || str.back() != code)) str += code;
+
+    return str;//detector->GetResult();
 }
 
 
@@ -65,7 +83,7 @@ extern "C" {
         jsize len = env->GetArrayLength(jdata);
         jshort* data = env->GetShortArrayElements(jdata, 0);
 
-        assert(len == FRAME_SIZE);
+        //assert(len == FRAME_SIZE);
         std::string res = decode(data, len);
 
         env->ReleaseShortArrayElements(jdata, data, 0);

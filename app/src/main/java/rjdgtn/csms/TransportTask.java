@@ -61,6 +61,12 @@ public class TransportTask  implements Runnable {
 
                 short[] inBytes = readTask.outQueue.take();
 
+
+//                short[] inBytes = new short[320];
+//                Log.d("CSMS", "outQueue " + readTask.outQueue.size() + " inQueue " + sendTask.inQueue.size());
+//                encode(inBytes);
+
+
                 if (i + inBytes.length > superBuff.length) break;
 
                 System.arraycopy(inBytes, 0, superBuff, i, inBytes.length);
@@ -72,17 +78,11 @@ public class TransportTask  implements Runnable {
 //                if (!decode.isEmpty())
 //                    Log.d("CSMS", "transport: "+decode);
 
-//                short[] outShorts = new short[320];
-//                Log.d("CSMS", "outQueue " + readTask.outQueue.size() + " inQueue " + sendTask.inQueue.size());
-//                encode(outShorts);
-//                Thread.sleep(1000 * outShorts.length / 8000);
-//
-//                sendTask.inQueue.put(inBytes);
-//                Thread.sleep(500 * inBytes.length / 8000);
+
 
             }
             Log.d("CSMS", "PLAY");
-            Thread.sleep(5000);
+            Thread.sleep(1000);
             int frequency = 8000;
             int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
             int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
@@ -100,23 +100,27 @@ public class TransportTask  implements Runnable {
 
             audio.play();
 
-            String decode = decode(superBuff);
-            if (!decode.isEmpty())
-                Log.d("CSMS", "transport: "+decode);
+            int o = 199/0;
+            i++;
+//            String decode = decode(superBuff);
+//            if (!decode.isEmpty())
+//                Log.d("CSMS", "transport: "+decode);
 
-//            i = 0;
-//            while (true) {
-//                short[] localBuf = new short[160];
-//                if (i + localBuf.length > superBuff.length) break;
-//                System.arraycopy(superBuff, i, localBuf, 0, localBuf.length);
-//                i += localBuf.length;
+            i = 0;
+            while (true) {
+                short[] localBuf = new short[160];
+                if (i + localBuf.length > superBuff.length) break;
+                System.arraycopy(superBuff, i, localBuf, 0, localBuf.length);
+                i += localBuf.length;
+
 //                Log.d("CSMS", ""+i+" queue: " + sendTask.inQueue.size());
 //                sendTask.inQueue.put(localBuf);
-//                String decode = decode(localBuf);
-//                if (!decode.isEmpty())
-//                    Log.d("CSMS", "transport: "+decode);
-//                Thread.sleep(900 * localBuf.length / 8000);
-//            }
+
+                String decode = decode(localBuf);
+                if (!decode.isEmpty())
+                    Log.d("CSMS", "transport: "+decode);
+                //Thread.sleep(900 * localBuf.length / 8000);
+            }
 
             while (true) {
                 Thread.sleep(1000);

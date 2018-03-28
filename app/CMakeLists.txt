@@ -19,7 +19,9 @@ add_library( # Sets the name of the library.
              # Provides a relative path to your source file(s).
 			 src/main/cpp/DtmfDetector.cpp
 			 src/main/cpp/DtmfGenerator.cpp
-             src/main/cpp/native-lib.cpp )
+             src/main/cpp/native-lib.cpp
+             src/main/cpp/dtmfin.c
+             src/main/cpp/dtmfout.c )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
