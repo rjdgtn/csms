@@ -25,9 +25,6 @@ import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
     // Used to load the 'native-lib' library on application startup.
-    static {
-        System.loadLibrary("native-lib");
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         // Example of a call to a native method
 //        TextView tv = (TextView) findViewById(R.id.sample_text);
 //        tv.setText();
-        stringFromJNI();
+//        stringFromJNI();
 
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));

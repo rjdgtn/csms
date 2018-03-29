@@ -21,10 +21,10 @@ import static java.lang.Thread.sleep;
 
 public class TransportTask  implements Runnable {
 
-    private ReadTask readTask;
-    private SendTask sendTask;
-    private Thread readThread;
-    private Thread sendThread;
+    private ReadTask readTask = null;
+    private SendTask sendTask = null;
+    private Thread readThread = null;
+    private Thread sendThread = null;
 
     public BlockingQueue<Request> inQueue;
     public BlockingQueue<Request> outQueue;
@@ -43,6 +43,11 @@ public class TransportTask  implements Runnable {
     public void run() {
         Log.d("CSMS", "do transport");
         try {
+
+            //decodee(new short[100]);
+            //Thread.sleep(2500);
+            //int o = 100/0;
+
             readTask = new ReadTask();
             sendTask = new SendTask();
 
@@ -100,7 +105,6 @@ public class TransportTask  implements Runnable {
 
             audio.play();
 
-            int o = 199/0;
             i++;
 //            String decode = decode(superBuff);
 //            if (!decode.isEmpty())
@@ -122,16 +126,26 @@ public class TransportTask  implements Runnable {
                 //Thread.sleep(900 * localBuf.length / 8000);
             }
 
+//            Thread.sleep(5000);
+//            int o = 100/0;
+
             while (true) {
                 Thread.sleep(1000);
             }
 
-        } catch (InterruptedException e) {
-
-        } finally {
-            destroy();
-            sendThread.interrupt();
-            readThread.interrupt();
+        } catch (Exception e) {
+            Log.d("CSMS", "transport crash");
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
+
+        Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+
+//        finally {
+//            //destroy();
+//            if (sendThread != null) sendThread.interrupt();
+//            if (readThread != null) readThread.interrupt();
+//            WorkerService.breakExec.set(true);
+//            //System.exit(0);
+//        }
     }
 }

@@ -28,16 +28,16 @@ public class ReadTask implements Runnable {
         return (((i>>8)&0xff)+((i << 8)&0xff00));
     }
     public void run() {
-
-        int frequency = 8000;
-        int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;//CHANNEL_CONFIGURATION_MONO;
-        int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-
-        int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
-        int bufferShorts = bufferBytes / 2;
-        AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes);
-
+        AudioRecord audioRecord = null;
         try {
+            int frequency = 8000;
+            int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;//CHANNEL_CONFIGURATION_MONO;
+            int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+            int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
+            int bufferShorts = bufferBytes / 2;
+            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes);
+
 
             short[] buffer = new short[bufferShorts];
             audioRecord.startRecording();
@@ -60,10 +60,22 @@ public class ReadTask implements Runnable {
                 //Log.d("CSMS", "read");
             }
 
-        } catch (InterruptedException e) {
-            audioRecord.stop();
-            audioRecord.release();
-            audioRecord = null;
+        } catch (Exception e) {
+            Log.d("CSMS", "transport crash");
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
+
+        Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+
+//        }  catch (Exception e) {
+//            Log.d("CSMS", "read crash");
+//            if (audioRecord != null) {
+//                audioRecord.stop();
+//                audioRecord.release();
+//                audioRecord = null;
+//            }
+//        } finally {
+//            WorkerService.breakExec.set(true);
+//        }
     }
 }

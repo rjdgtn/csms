@@ -93,9 +93,11 @@ public class LauncherService extends Service {
 
         @Override
         public void run() {
-            if (!WorkerService.isRunning(context)) {
+            Log.d("CSMS", "check worker");
+            //if (!WorkerService.isRunning(context)) {
+                Log.d("CSMS", "start worker");
                 WorkerService.start(context);
-            }
+            //}
         }
     }
 }

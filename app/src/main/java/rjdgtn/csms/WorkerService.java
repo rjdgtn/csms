@@ -13,8 +13,14 @@ import android.util.Log;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorkerService extends Service {
+
+    static {
+        System.loadLibrary("native-lib");
+    }
+
     public static boolean isRunning(Context context) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -33,10 +39,12 @@ public class WorkerService extends Service {
         context.stopService(intent);
     }
 
-    private TransportTask transportTask;
-    private ProcessorTask processorTask;
-    private Thread transportThread;
-    private Thread processorThread;
+    public static AtomicBoolean breakExec;
+
+    private TransportTask transportTask = null;
+    private ProcessorTask processorTask = null;
+    private Thread transportThread = null;
+    private Thread processorThread = null;
 
     public WorkerService() {
 
@@ -44,8 +52,13 @@ public class WorkerService extends Service {
 
     @Override
     public void onCreate() {
+        Thread.setDefaultUncaughtExceptionHandler(new TryMe());
+
+
         Log.d("CSMS", "WORKER create");
         super.onCreate();
+
+        breakExec = new AtomicBoolean(false);
 
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
@@ -62,21 +75,29 @@ public class WorkerService extends Service {
 
         processorThread = new Thread(processorTask);
         processorThread.start();
-
     }
 
     @Override
     public void onDestroy() {
         Log.d("CSMS", "WORKER destroy");
-        processorThread.interrupt();
-        transportThread.interrupt();
-        super.onDestroy();
+        System.exit(0);
+//        processorThread.interrupt();
+//        transportThread.interrupt();
+//        super.onDestroy();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    public class TryMe implements Thread.UncaughtExceptionHandler {
+        @Override
+        public void uncaughtException(Thread thread, Throwable throwable) {
+            Log.d("CSMS", "uncaughtException");
+            System.exit(0);
+        }
     }
 
     //private BlockingQueue<>

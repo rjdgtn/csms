@@ -24,22 +24,23 @@ public class SendTask implements Runnable {
     boolean active = false;
 
     public void run() {
-        int frequency = 8000;
-        int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
-        int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-
-        int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
-
-        AudioTrack audio = new AudioTrack(AudioManager.STREAM_MUSIC,
-                frequency,
-                channelConfiguration, //2 channel
-                audioEncoding, // 16-bit
-                bufsize * 2,
-                AudioTrack.MODE_STREAM);
-
-        audio.play();
-
+        AudioTrack audio = null;
         try {
+            int frequency = 8000;
+            int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
+            int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+            int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
+
+            audio = new AudioTrack(AudioManager.STREAM_MUSIC,
+                    frequency,
+                    channelConfiguration, //2 channel
+                    audioEncoding, // 16-bit
+                    bufsize * 2,
+                    AudioTrack.MODE_STREAM);
+
+            audio.play();
+
             while (true) {
                 short[] in = inQueue.take();
                 if (in.length > 0) {
@@ -48,10 +49,22 @@ public class SendTask implements Runnable {
                 }
             }
 
-        } catch (InterruptedException e) {
-            audio.stop();
-            audio.release();
-            audio = null;
+        } catch (Exception e) {
+            Log.d("CSMS", "transport crash");
+            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
+
+        Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+
+//        } catch (Exception e) {
+//            Log.d("CSMS", "send crash");
+//            if (audio != null) {
+//                audio.stop();
+//                audio.release();
+//                audio = null;
+//            }
+//        } finally {
+//            WorkerService.breakExec.set(true);
+//        }
     }
 }

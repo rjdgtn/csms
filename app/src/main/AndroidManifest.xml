@@ -32,11 +32,22 @@
         <service
             android:name=".LauncherService"
             android:enabled="true"
+            android:exported="true"
+            android:process=":launcherProcess" />
+        <service
+            android:name=".WorkerService"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":workerProcess"/>
+
+        <!--service
+            android:name=".LauncherService"
+            android:enabled="true"
             android:exported="true" />
         <service
             android:name=".WorkerService"
             android:enabled="true"
-            android:exported="true"/>
+            android:exported="true"/-->
     </application>
 
 </manifest>
