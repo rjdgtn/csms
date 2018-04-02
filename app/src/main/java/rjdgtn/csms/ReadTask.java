@@ -5,8 +5,15 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
+import java.io.ByteArrayInputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.lang.Math.min;
 
 /**
  * Created by Petr on 25.03.2018.
@@ -14,19 +21,22 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ReadTask implements Runnable {
 
-    public BlockingQueue<short[]> outQueue;;
+    char prevSymbol = '\0';
+    public BlockingQueue<Character> outQueue;;
+
+    public native char decode(short[] data);
 
     public ReadTask() {
-        outQueue = new LinkedBlockingQueue<short[]>();
+        outQueue = new LinkedBlockingQueue<Character>();
 
         Log.d("CSMS", "READ create");
     }
 
-    boolean active = false;
+    public static AtomicInteger bufferSize = new AtomicInteger(350);
 
-    public static int SHORT_little_endian_TO_big_endian(int i){
-        return (((i>>8)&0xff)+((i << 8)&0xff00));
-    }
+//    public static int SHORT_little_endian_TO_big_endian(int i){
+//        return (((i>>8)&0xff)+((i << 8)&0xff00));
+//    }
     public void run() {
         AudioRecord audioRecord = null;
         try {
@@ -36,23 +46,45 @@ public class ReadTask implements Runnable {
 
             int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
             int bufferShorts = bufferBytes / 2;
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes);
+            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes * 100);
 
-
-            short[] buffer = new short[bufferShorts];
+            short[] buffer = new short[bufferShorts * 2];
             audioRecord.startRecording();
 
-            while (true) {
-                int readShorts = audioRecord.read(buffer, 0, bufferShorts);
+            int wpos = 0;
+            short[] decodeBuffer = null;
 
-                if (readShorts > 0) {
-                    short[] outBuffer = new short[readShorts];
-//                    for(int i = 0; i < readShorts; i++) {
-//                        outBuffer[i] = (short)SHORT_little_endian_TO_big_endian(buffer[i]);
-//                        //pcm8Buffer[i] = (byte)(buffer[i] >> 8);
-//                    }
-                    System.arraycopy(buffer, 0, outBuffer, 0, outBuffer.length);
-                    outQueue.put(outBuffer);
+            while (true) {
+                int rpos = 0;
+                int rsz = audioRecord.read(buffer, 0, buffer.length);
+
+                if (rsz > 0) {
+                    int bufsz = bufferSize.get();
+                    if (decodeBuffer == null || decodeBuffer.length != bufsz) {
+                        decodeBuffer = new short[bufsz];
+                        wpos = 0;
+                    }
+
+                    while (true) {
+                        int sz = min(bufsz - wpos, rsz);
+                        if (sz > 0) {
+                            System.arraycopy(buffer, rpos, decodeBuffer, wpos, sz);
+                            rpos += sz;
+                            wpos += sz;
+                            rsz -= sz;
+                        }
+
+                        if (wpos < bufsz) {
+                            break;
+                        }
+                        wpos = 0;
+                        char symbol = decode(decodeBuffer);
+                        if (prevSymbol != symbol && symbol != '\0') {
+                           // prevSymbol = symbol;
+                            outQueue.put(new Character(symbol));
+                        }
+                    }
+
                 }
 
                 //Thread.sleep(1000);

@@ -1,7 +1,11 @@
 package rjdgtn.csms;
 
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -79,6 +83,36 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     public void onUpdate() {
         ((CheckBox)findViewById(R.id.checkbox1)).setChecked(WorkerService.isRunning(getApplicationContext()));
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // This registers mMessageReceiver to receive messages.
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mMessageReceiver,
+                        new IntentFilter("my-integer"));
+    }
+
+    // Handling the received Intents for the "my-integer" event
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Extract data included in the Intent
+            Character ch = intent.getCharExtra("message",'\0');
+
+            TextView tv = ((TextView)findViewById(R.id.textView1));
+            tv.setText(tv.getText() + ch.toString());
+            //
+        }
+    };
+
+    @Override
+    protected void onPause() {
+        // Unregister since the activity is not visible
+        LocalBroadcastManager.getInstance(this)
+                .unregisterReceiver(mMessageReceiver);
+        super.onPause();
     }
 }
 

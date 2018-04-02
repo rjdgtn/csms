@@ -67,7 +67,7 @@ public class WorkerService extends Service {
         Notification notification = builder.build();
         startForeground(999, notification);
 
-        transportTask = new TransportTask();
+        transportTask = new TransportTask(getApplicationContext());
         processorTask = new ProcessorTask(transportTask.inQueue, transportTask.outQueue);
 
         transportThread = new Thread(transportTask);

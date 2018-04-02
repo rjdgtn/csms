@@ -7,21 +7,31 @@ import android.util.Log;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Petr on 25.03.2018.
  */
 
 public class SendTask implements Runnable {
-    public BlockingQueue<short[]> inQueue;
+    public LinkedBlockingQueue<String> inQueue;
 
     public SendTask() {
-        inQueue = new LinkedBlockingQueue<short[]>();
+        inQueue = new LinkedBlockingQueue<String>();
 
         Log.d("CSMS", "SEND create");
     }
 
-    boolean active = false;
+    public static AtomicInteger callDuration = new AtomicInteger(75);
+    public static AtomicInteger spaceDuration = new AtomicInteger(25);
+
+    public native void encodeInit(int frameSize, int callDur, int spaceDur);
+    public native void encode(String str);
+    public native boolean encodeStep(short[] buf);
+
+    //JNIEXPORT void JNICALL Java_rjdgtn_csms_SendTask_encodeInit(JNIEnv *env, jobject, jint frameSize, jint callDur, jint spaceDur) {
+    //JNIEXPORT void JNICALL Java_rjdgtn_csms_SendTask_encode(JNIEnv *env, jobject, jbyteArray jdata) {
+    //JNIEXPORT jboolean JNICALL Java_rjdgtn_csms_SendTask_encodeStep(JNIEnv *env, jobject, jshortArray jdata) {
 
     public void run() {
         AudioTrack audio = null;
@@ -36,17 +46,34 @@ public class SendTask implements Runnable {
                     frequency,
                     channelConfiguration, //2 channel
                     audioEncoding, // 16-bit
-                    bufsize * 2,
+                    bufsize * 5,
                     AudioTrack.MODE_STREAM);
 
             audio.play();
 
             while (true) {
-                short[] in = inQueue.take();
-                if (in.length > 0) {
-                    audio.write(in, 0, in.length);
-
+                if (inQueue.isEmpty()) {
+                    Thread.sleep(1000);
+                    continue;
                 }
+                String in = inQueue.element();
+                if (!in.isEmpty()) {
+                    //in += "    ";
+                    short[] buffer = new short[100];
+
+                    encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
+                    encode(in);
+                    while (true) {
+                        boolean finished = encodeStep(buffer);
+                        audio.write(buffer, 0, buffer.length);
+                        Thread.sleep(buffer.length / (frequency / 1000));
+                        if (finished) {
+                            break;
+                        }
+                    }
+                    Thread.sleep(1000);
+                }
+                inQueue.take();
             }
 
         } catch (Exception e) {

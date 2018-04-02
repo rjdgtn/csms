@@ -9,57 +9,44 @@ extern "C" {
 #include "dtmf.h"
 }
 
-const INT32 FRAME_SIZE = 320;
-DtmfDetector* detector = nullptr;
-
-static std::string str;
-void detectorInit() {
-    if (!detector) {
-        detector = new DtmfDetector(FRAME_SIZE);
-
-        DTMFSetup(SAMPLING_RATE, BUFFER_SIZE);
-        str.clear();
-    }
-}
-
-std::string decode(short* data, int size) {
-    detectorInit();
-    //detector->zerosIndexDialButton();
-    //detector->Detect(data, size);
-
-
-    static char code;
-
-    DTMFDecode(data, size/* * sizeof(short)*/, &code);
-
-    if(code != NO_CODE && (str.empty() || str.back() != code)) str += code;
-
-    return str;//detector->GetResult();
-}
-
-
+int curFrameSize = 0;
 DtmfGenerator* generator = nullptr;
 
-void generatorInit() {
-    if (!generator) {
-        generator = new DtmfGenerator(FRAME_SIZE, 1000, 200);
+//DtmfDetector* detector = nullptr;
+//
+//static std::string str;
+//void detectorInit() {
+//    if (!detector) {
+//        detector = new DtmfDetector(FRAME_SIZE);
+//
+//        DTMFSetup(SAMPLING_RATE, BUFFER_SIZE);
+//        str.clear();
+//    }
+//}
 
-        char buttons[] = {'1','2','3','4','5','6','7','8','9','0'};
-        generator->dtmfGeneratorReset();
-        generator->transmitNewDialButtonsArray(buttons, 10);
-    }
-}
 
-void encode(short* data) {
-    generatorInit();
-    if(!generator->getReadyFlag()) {
-        generator->dtmfGenerating(data);
-    }
+//
 
-    //detector->zerosIndexDialButton();
-    //detector->dtmfDetecting(data);
-    //return std::string(detector->getDialButtonsArray(), detector->getIndexDialButtons());
-}
+//void generatorInit() {
+//    if (!generator) {
+//        generator = new DtmfGenerator(FRAME_SIZE, 1000, 200);
+//
+//        char buttons[] = {'1','2','3','4','5','6','7','8','9','0'};
+//        generator->dtmfGeneratorReset();
+//        generator->transmitNewDialButtonsArray(buttons, 10);
+//    }
+//}
+
+//void encode(short* data) {
+//    generatorInit();
+//    if(!generator->getReadyFlag()) {
+//        generator->dtmfGenerating(data);
+//    }
+//
+//    //detector->zerosIndexDialButton();
+//    //detector->dtmfDetecting(data);
+//    //return std::string(detector->getDialButtonsArray(), detector->getIndexDialButtons());
+//}
 
 
 extern "C" {
@@ -71,37 +58,73 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_rjdgtn_csms_TransportTask_destroy(JNIEnv *env, jobject) {
-        delete detector;
-        detector = nullptr;
-        delete generator;
-        generator = nullptr;
+//        delete detector;
+//        detector = nullptr;
+//        delete generator;
+//        generator = nullptr;
     }
 
-    JNIEXPORT jstring JNICALL Java_rjdgtn_csms_TransportTask_decode(JNIEnv *env, jobject, jshortArray jdata) {
+    JNIEXPORT jchar JNICALL Java_rjdgtn_csms_ReadTask_decode(JNIEnv *env, jobject, jshortArray jdata) {
        // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
-        //
+
         jsize len = env->GetArrayLength(jdata);
         jshort* data = env->GetShortArrayElements(jdata, 0);
 
-        //assert(len == FRAME_SIZE);
-        std::string res = decode(data, len);
+        char code = '\0';
+        DTMFDecode(data, len, &code);
 
         env->ReleaseShortArrayElements(jdata, data, 0);
 
-        return env->NewStringUTF(res.c_str());
+        return code;
     }
 
-    JNIEXPORT void JNICALL Java_rjdgtn_csms_TransportTask_encode(JNIEnv *env, jobject, jshortArray jdata) {
-        // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
-        //
+    JNIEXPORT void JNICALL Java_rjdgtn_csms_SendTask_encodeInit(JNIEnv *env, jobject, jint frameSize, jint callDur, jint spaceDur) {
+        static int curCallDur = 0;
+        static int curSpaceDur = 0;
+
+        if (generator && (curFrameSize != frameSize || curCallDur != callDur || curSpaceDur != spaceDur)) {
+            delete generator;
+            generator = nullptr;
+        }
+
+        if (!generator) {
+            generator = new DtmfGenerator(frameSize, callDur, spaceDur);
+            curFrameSize = frameSize;
+            curCallDur = callDur;
+            curSpaceDur = spaceDur;
+        }
+    }
+
+    JNIEXPORT void JNICALL Java_rjdgtn_csms_SendTask_encode(JNIEnv *env, jobject, jstring jstr) {
+
+        assert(generator);
+        jsize len = env->GetStringLength(jstr);
+        const jchar* str = env->GetStringChars(jstr, nullptr);
+
+        char* buf = new char[len];
+        for (int i = 0; i < len; i++) {
+            buf[i] = str[i];
+        }
+
+        generator->dtmfGeneratorReset();
+        generator->transmitNewDialButtonsArray(buf, len);
+
+        env->ReleaseStringChars(jstr, str);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_rjdgtn_csms_SendTask_encodeStep(JNIEnv *env, jobject, jshortArray jdata) {
+//        // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
+//        //
         jsize len = env->GetArrayLength(jdata);
         jshort* data = env->GetShortArrayElements(jdata, 0);
 
-        assert(len == FRAME_SIZE);
-        encode(data);
+        assert(generator);
+        assert(curFrameSize == len);
+        generator->dtmfGenerating(data);
 
         env->ReleaseShortArrayElements(jdata, data, 0);
 
+        return generator->getReadyFlag();
     }
 
 }
