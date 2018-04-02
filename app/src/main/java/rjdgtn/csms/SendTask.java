@@ -22,8 +22,8 @@ public class SendTask implements Runnable {
         Log.d("CSMS", "SEND create");
     }
 
-    public static AtomicInteger callDuration = new AtomicInteger(75);
-    public static AtomicInteger spaceDuration = new AtomicInteger(25);
+    public static AtomicInteger callDuration = new AtomicInteger(60);
+    public static AtomicInteger spaceDuration = new AtomicInteger(50);
 
     public native void encodeInit(int frameSize, int callDur, int spaceDur);
     public native void encode(String str);
@@ -59,7 +59,7 @@ public class SendTask implements Runnable {
                 String in = inQueue.element();
                 if (!in.isEmpty()) {
                     //in += "    ";
-                    short[] buffer = new short[100];
+                    short[] buffer = new short[256];
 
                     encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
                     encode(in);
