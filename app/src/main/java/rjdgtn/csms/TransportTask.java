@@ -12,9 +12,13 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static java.lang.Math.ceil;
 import static java.lang.Thread.sleep;
 
 /**
@@ -22,21 +26,30 @@ import static java.lang.Thread.sleep;
  */
 
 public class TransportTask  implements Runnable {
-    private int[][] signalLength =
+    private int[] signalLength =
             // длительность сигнала 1/5, паузы 1/10
-                    {{1000, 2000},
-                    {750, 1500},
-                    {550, 1100},
-                    {420, 840},
-                    {315, 630},
-                    {235, 470},
-                    {175, 350},
-                    {130, 260},
-                    {100, 200},
-                    {75, 150},
-                    {55, 110},
-                    {42, 88},
-                    {32, 64}};
+                    {1000,
+                     750,
+                     550,
+                     420,
+                     315,
+                     235,
+                     175,
+                     130,
+                     100,
+                     75,
+                     55,
+                     42,
+                     32};
+
+    enum State {
+        IDLE,
+        SEND,
+        WAIT_FOR_CONFIRM,
+        READ
+    };
+
+    private State state = State.IDLE;
 
     private ReadTask readTask = null;
     private SendTask sendTask = null;
@@ -48,6 +61,24 @@ public class TransportTask  implements Runnable {
 
     Context contex;
 
+    private char[] intToSymbol = {'0', '1', '2', '3', '4', '5', '6', '7', '8'};
+    private int symbolToInt(char ch) {
+        switch (ch) {
+            case '0': return 0;
+            case '1': return 1;
+            case '2': return 2;
+            case '3': return 3;
+            case '4': return 4;
+            case '5': return 5;
+            case '6': return 6;
+            case '7': return 7;
+            case '8': return 8;
+            default: return -1;
+        }
+    }
+
+
+
     public TransportTask(Context contex) {
         this.contex = contex;
 
@@ -57,10 +88,103 @@ public class TransportTask  implements Runnable {
         Log.d("CSMS", "TRANSPORT create");
     }
 
-//    public native void encode(short[] data);
-//    public native void destroy();
+    public String pack(byte[] data) {
+        String res = new String("*");
+        //String origRes = new String();
+        BitSet bitset = BitSet.valueOf(data);
+
+        int checksum = 0;
+        int prevVal = 8;
+        int symbolsNum = (int)ceil(data.length * 8 / 3.0);
+        for (int i = 0; i < symbolsNum; i++) {
+            //0-7 - 3 bits
+            int val = 0;
+            if (bitset.get(i*3))
+                val += 1;
+            val = val << 1;
+            if (bitset.get(i*3+1))
+                val += 1;
+            val = val << 1;
+            if (bitset.get(i*3+2))
+                val += 1;
+
+            checksum = checksum ^ val;
+
+            //origRes += intToSymbol[val];
+
+            if (val >= prevVal) val++;
+
+            res += intToSymbol[val];
+            prevVal = val;
+        }
+        res += intToSymbol[checksum];
+        res += '#';
+
+//        Log.d("CSMS:", origRes);
+
+        return res;
+    }
+
+    public byte[] unpack(String msg) {
+        int overhead = 3;
+        if (msg.length() < 3 + overhead) return null;
+        if (msg.charAt(0) != '*') return null;
+        if (msg.charAt(msg.length()-1) != '#') return null;
+
+        int checkSum = symbolToInt(msg.charAt(msg.length()-2));
+        int meanBitsNum = ((msg.length() - overhead) * 3 / 8) * 8;
+
+        BitSet res = new BitSet(meanBitsNum);
+        int i = 0;
+        int prevSym = 8;
+        for (int j = 1; j < msg.length()-2; j++) {
+            int sym = symbolToInt(msg.charAt(j));
+            if (sym == prevSym) {
+                return null;
+            } else if (sym > prevSym) {
+                prevSym = sym;
+                --sym;
+            } else {
+                prevSym = sym;
+            }
+            checkSum = checkSum ^ sym;
+            res.set(i++, (sym & 0b100) > 0);
+            if (i >= meanBitsNum) break;
+            res.set(i++, (sym & 0b010) > 0);
+            if (i >= meanBitsNum) break;
+            res.set(i++, (sym & 0b001) > 0);
+            if (i >= meanBitsNum) break;
+        }
+
+        if (checkSum != 0) return null;
+
+        return res.toByteArray();
+    }
+    public void sendData(byte[] data) {
+
+    }
 
     public void run() {
+
+//        Random rnd = new Random(System.currentTimeMillis());
+//        int size = 150 + rnd.nextInt(50 + 1);
+//
+//        byte[] data = new byte[size];
+//        for (int i = 0; i < size; i++) {
+//            byte min = -128;
+//            byte max = 127;
+//            int elem = min + rnd.nextInt(max - min + 1);
+//            data[i] = (byte)elem;
+//        }
+//        //byte[] data = {1, 2, 3, 4, 5};
+//        String encd = encode(data);
+//        byte[] dedata = decode(encd);
+//
+//        if (!Arrays.equals(data, dedata)) {
+//            System.exit(0);
+//        }
+
+//        Log.d("CSMS", encd);
         Log.d("CSMS", "do transport");
         try {
 
@@ -83,16 +207,16 @@ public class TransportTask  implements Runnable {
             while (true) {
                 //Thread.sleep(1000);
 
-                sleep(2000);
-                sendTask.inQueue.put("1234567890");
-                sleep(2000);
-
-//                Character symbol = readTask.outQueue.take();
-//                Log.d("CSMS:", symbol.toString());
-//                Intent intent = new Intent("my-integer");
-//                // Adding some data
-//                intent.putExtra("message", symbol);
-//                LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+//                sleep(2000);
+//                sendTask.inQueue.put("1234567890");
+//                sleep(2000);
+//
+                Character symbol = readTask.outQueue.take();
+                Log.d("CSMS:", symbol.toString());
+                Intent intent = new Intent("my-integer");
+                // Adding some data
+                intent.putExtra("message", symbol);
+                LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
 
 //                short[] inBytes = new short[320];
 //                Log.d("CSMS", "outQueue " + readTask.outQueue.size() + " inQueue " + sendTask.inQueue.size());
