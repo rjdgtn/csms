@@ -5,7 +5,6 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,12 +13,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 public class SendTask implements Runnable {
-    public LinkedBlockingQueue<String> inQueue;
+    public LinkedBlockingQueue<String> outQueue;
 
     public SendTask() {
-        inQueue = new LinkedBlockingQueue<String>();
+        outQueue = new LinkedBlockingQueue<String>();
 
-        Log.d("CSMS", "SEND create");
+        Log.d("MY SEND", "create");
     }
 
     public static AtomicInteger callDuration = new AtomicInteger(60);
@@ -34,6 +33,7 @@ public class SendTask implements Runnable {
     //JNIEXPORT jboolean JNICALL Java_rjdgtn_csms_SendTask_encodeStep(JNIEnv *env, jobject, jshortArray jdata) {
 
     public void run() {
+        Log.d("MY SEND", "run");
         AudioTrack audio = null;
         try {
             int frequency = 8000;
@@ -51,40 +51,56 @@ public class SendTask implements Runnable {
 
             audio.play();
 
+            Log.d("MY SEND", "loop");
             while (true) {
-                if (inQueue.isEmpty()) {
-                    Thread.sleep(1000);
+                if (outQueue.isEmpty()) {
+                    Thread.sleep(100);
                     continue;
                 }
-                String in = inQueue.element();
+                String in = outQueue.element();
                 if (!in.isEmpty()) {
-                    //in += "    ";
-                    short[] buffer = new short[256];
+                    if (in.contains("sleep ")) {
+                        int duration = Integer.parseInt(in.substring(6));
+                        Log.v("MY SEND", "sleep "+duration);
+                        Thread.sleep(duration);
+                    } else if (in.contains("callDuration ")) {
+                        int duration = Integer.parseInt(in.substring(13));
+                        callDuration.set(duration);
+                        Log.v("MY SEND", "callDuration "+ duration);
+                    } else if (in.contains("spaceDuration ")) {
+                        int duration = Integer.parseInt(in.substring(14));
+                        spaceDuration.set(duration);
+                        Log.v("MY SEND", "spaceDuration "+ duration);
+                    } else {
+                        short[] buffer = new short[256];
 
-                    encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
-                    encode(in);
-                    while (true) {
-                        boolean finished = encodeStep(buffer);
-                        audio.write(buffer, 0, buffer.length);
-                        Thread.sleep(buffer.length / (frequency / 1000));
-                        if (finished) {
-                            break;
+                        encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
+                        encode(in);
+                        Log.v("MY SEND", "start " + in);
+                        while (true) {
+                            boolean finished = encodeStep(buffer);
+                            audio.write(buffer, 0, buffer.length);
+                            Thread.sleep(buffer.length / (frequency / 1000));
+                            if (finished) {
+                                break;
+                            }
                         }
+                        Log.v("MY SEND", "finish ");
+                        Thread.sleep(1000);
                     }
-                    Thread.sleep(1000);
                 }
-                inQueue.take();
+                outQueue.take();
             }
 
         } catch (Exception e) {
-            Log.d("CSMS", "transport crash");
+            Log.e("SEND", "crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
 
 //        } catch (Exception e) {
-//            Log.d("CSMS", "send crash");
+//            Log.d("MY CSMS", "send crash");
 //            if (audio != null) {
 //                audio.stop();
 //                audio.release();

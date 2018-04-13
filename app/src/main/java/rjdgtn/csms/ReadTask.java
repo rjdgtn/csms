@@ -5,13 +5,9 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
-import java.io.ByteArrayInputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.lang.Math.min;
 
@@ -22,14 +18,15 @@ import static java.lang.Math.min;
 public class ReadTask implements Runnable {
 
     char prevSymbol = '\0';
-    public BlockingQueue<Character> outQueue;;
+    char prevMeanSymbol = '\0';
+    public BlockingQueue<Character> inQueue;;
 
     public native char decode(short[] data);
 
     public ReadTask() {
-        outQueue = new LinkedBlockingQueue<Character>();
+        inQueue = new LinkedBlockingQueue<Character>();
 
-        Log.d("CSMS", "READ create");
+        Log.d("MY READ", "create");
     }
 
     public static AtomicInteger bufferSize = new AtomicInteger(350);
@@ -38,6 +35,7 @@ public class ReadTask implements Runnable {
 //        return (((i>>8)&0xff)+((i << 8)&0xff00));
 //    }
     public void run() {
+        Log.d("MY READ", "run");
         AudioRecord audioRecord = null;
         try {
             int frequency = 8000;
@@ -51,9 +49,11 @@ public class ReadTask implements Runnable {
             short[] buffer = new short[bufferShorts * 2];
             audioRecord.startRecording();
 
+            int dupCounter = 0;
             int wpos = 0;
             short[] decodeBuffer = null;
 
+            Log.d("MY READ", "loop");
             while (true) {
                 int rpos = 0;
                 int rsz = audioRecord.read(buffer, 0, buffer.length);
@@ -79,9 +79,17 @@ public class ReadTask implements Runnable {
                         }
                         wpos = 0;
                         char symbol = decode(decodeBuffer);
-                        if (prevSymbol != symbol && symbol != '\0') {
-                           // prevSymbol = symbol;
-                            outQueue.put(new Character(symbol));
+                        //if (symbol != '\0') Log.v("MY READ", "detect "+symbol);
+                        if (prevSymbol != symbol) {
+                            if (prevSymbol != '\0' && prevSymbol != prevMeanSymbol) {
+                                Log.v("MY READ", "put " + prevSymbol + " dup " + dupCounter);
+                                inQueue.put(new Character(prevSymbol));
+                                prevMeanSymbol = prevSymbol;
+                                dupCounter = 0;
+                            }
+                            prevSymbol = symbol;
+                        } else {
+                            dupCounter++;
                         }
                     }
 
@@ -89,18 +97,18 @@ public class ReadTask implements Runnable {
 
                 //Thread.sleep(1000);
 
-                //Log.d("CSMS", "read");
+                //Log.d("MY CSMS", "read");
             }
 
         } catch (Exception e) {
-            Log.d("CSMS", "transport crash");
+            Log.e("READ", "crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
 
 //        }  catch (Exception e) {
-//            Log.d("CSMS", "read crash");
+//            Log.d("MY CSMS", "read crash");
 //            if (audioRecord != null) {
 //                audioRecord.stop();
 //                audioRecord.release();

@@ -2,23 +2,17 @@ package rjdgtn.csms;
 
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioRecord;
-import android.media.AudioTrack;
-import android.media.MediaRecorder;
-import android.os.AsyncTask;
-import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Random;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static java.lang.Math.ceil;
+import static java.lang.Math.min;
 import static java.lang.Thread.sleep;
 
 /**
@@ -26,21 +20,35 @@ import static java.lang.Thread.sleep;
  */
 
 public class TransportTask  implements Runnable {
-    private int[] signalLength =
-            // длительность сигнала 1/5, паузы 1/10
-                    {1000,
-                     750,
-                     550,
-                     420,
-                     315,
-                     235,
-                     175,
-                     130,
-                     100,
-                     75,
-                     55,
-                     42,
-                     32};
+    private int[] signalReadLength =
+            {1000, // длительность сигнала 1/5, паузы 1/10
+            750,
+            550,
+            420,
+            315,
+            235,
+            175,
+            130,
+            100,
+            75,
+            55,
+            42,
+            32};
+
+    public class TransportPrefs {
+        public byte bytesPerPack = 30;
+        public short signalDuration = 315;
+        public short confirmWait = 5000;
+        public short controlDelay = (short)(signalDuration * 2);
+        public short controlDuration = (short)(signalDuration * 4);
+        public short controlAwait = (short)(signalDuration * 2);
+       // public short controlSignalLength = responseDuration;
+        public float readSignalDurationMult = 0.2f;
+        public float spaceMult = 0.1f;
+        //public short controlExtraSignalLength = 315;
+    }
+
+    private TransportPrefs prefs = new TransportPrefs();
 
     enum State {
         IDLE,
@@ -49,149 +57,73 @@ public class TransportTask  implements Runnable {
         READ
     };
 
-    private State state = State.IDLE;
+    private String stateToStr(State st) {
+        if (st == State.IDLE) return "IDLE";
+        if (st == State.SEND) return "SEND";
+        if (st == State.WAIT_FOR_CONFIRM) return "WAIT_FOR_CONFIRM";
+        if (st == State.READ) return "READ";
+        else return "UNKNOWN";
+    }
+
+    private State state = State.READ;
+
+    //private char resetSignal = 'C';
+    private char SUCCESS_SIGNAL = 'A';
+    private char FAIL_SIGNAL = 'B';
+    private char AWAKE_SIGNAL = '9';
+    private String RESTART_PATTERN = "DCDCDC";
+
 
     private ReadTask readTask = null;
     private SendTask sendTask = null;
     private Thread readThread = null;
     private Thread sendThread = null;
 
-    public BlockingQueue<Request> inQueue;
-    public BlockingQueue<Request> outQueue;
+    //public BlockingQueue<String> commands = new LinkedBlockingQueue<String>();
+    private Queue<byte[]> msgBlocks = new LinkedList<byte[]>();
+    public static BlockingQueue<byte[]> inQueue = new LinkedBlockingQueue<byte[]>();
+    public static BlockingQueue<OutRequest> outQueue = new LinkedBlockingQueue<OutRequest>();
 
     Context contex;
 
-    private char[] intToSymbol = {'0', '1', '2', '3', '4', '5', '6', '7', '8'};
-    private int symbolToInt(char ch) {
-        switch (ch) {
-            case '0': return 0;
-            case '1': return 1;
-            case '2': return 2;
-            case '3': return 3;
-            case '4': return 4;
-            case '5': return 5;
-            case '6': return 6;
-            case '7': return 7;
-            case '8': return 8;
-            default: return -1;
-        }
-    }
-
-
-
     public TransportTask(Context contex) {
         this.contex = contex;
-
-        inQueue = new LinkedBlockingQueue<Request>();
-        outQueue = new LinkedBlockingQueue<Request>();
-
-        Log.d("CSMS", "TRANSPORT create");
+        log("create");
     }
 
-    public String pack(byte[] data) {
-        String res = new String("*");
-        //String origRes = new String();
-        BitSet bitset = BitSet.valueOf(data);
+    private void sendControlSignal(String signal) throws InterruptedException {
+        log("push control " + signal);
 
-        int checksum = 0;
-        int prevVal = 8;
-        int symbolsNum = (int)ceil(data.length * 8 / 3.0);
-        for (int i = 0; i < symbolsNum; i++) {
-            //0-7 - 3 bits
-            int val = 0;
-            if (bitset.get(i*3))
-                val += 1;
-            val = val << 1;
-            if (bitset.get(i*3+1))
-                val += 1;
-            val = val << 1;
-            if (bitset.get(i*3+2))
-                val += 1;
+        sendTask.outQueue.put("sleep " + prefs.controlDelay);
+        sendTask.outQueue.put("callDuration " + prefs.controlDuration);
+        sendTask.outQueue.put("spaceDuration " + (int)(prefs.controlDuration * prefs.spaceMult));
 
-            checksum = checksum ^ val;
+        sendTask.outQueue.put(signal);
 
-            //origRes += intToSymbol[val];
-
-            if (val >= prevVal) val++;
-
-            res += intToSymbol[val];
-            prevVal = val;
-        }
-        res += intToSymbol[checksum];
-        res += '#';
-
-//        Log.d("CSMS:", origRes);
-
-        return res;
+        sendTask.outQueue.put("callDuration " + prefs.signalDuration);
+        sendTask.outQueue.put("spaceDuration " + (int)(prefs.signalDuration * prefs.spaceMult));
+        sendTask.outQueue.put("sleep " + prefs.controlAwait);
     }
 
-    public byte[] unpack(String msg) {
-        int overhead = 3;
-        if (msg.length() < 3 + overhead) return null;
-        if (msg.charAt(0) != '*') return null;
-        if (msg.charAt(msg.length()-1) != '#') return null;
-
-        int checkSum = symbolToInt(msg.charAt(msg.length()-2));
-        int meanBitsNum = ((msg.length() - overhead) * 3 / 8) * 8;
-
-        BitSet res = new BitSet(meanBitsNum);
-        int i = 0;
-        int prevSym = 8;
-        for (int j = 1; j < msg.length()-2; j++) {
-            int sym = symbolToInt(msg.charAt(j));
-            if (sym == prevSym) {
-                return null;
-            } else if (sym > prevSym) {
-                prevSym = sym;
-                --sym;
-            } else {
-                prevSym = sym;
-            }
-            checkSum = checkSum ^ sym;
-            res.set(i++, (sym & 0b100) > 0);
-            if (i >= meanBitsNum) break;
-            res.set(i++, (sym & 0b010) > 0);
-            if (i >= meanBitsNum) break;
-            res.set(i++, (sym & 0b001) > 0);
-            if (i >= meanBitsNum) break;
-        }
-
-        if (checkSum != 0) return null;
-
-        return res.toByteArray();
+    private void sendControlSignal(char signal) throws InterruptedException  {
+        sendControlSignal("" + signal);
     }
-    public void sendData(byte[] data) {
 
+    private void setState(State st) {
+        log("shitch state " + stateToStr(state) + " to "+ stateToStr(st));
+        state = st;
+    }
+
+    private void log(String str) {
+        Log.d("MY TRPT", str);
+        Intent intent = new Intent("transport_log");
+        intent.putExtra("log", str);
+        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
     }
 
     public void run() {
-
-//        Random rnd = new Random(System.currentTimeMillis());
-//        int size = 150 + rnd.nextInt(50 + 1);
-//
-//        byte[] data = new byte[size];
-//        for (int i = 0; i < size; i++) {
-//            byte min = -128;
-//            byte max = 127;
-//            int elem = min + rnd.nextInt(max - min + 1);
-//            data[i] = (byte)elem;
-//        }
-//        //byte[] data = {1, 2, 3, 4, 5};
-//        String encd = encode(data);
-//        byte[] dedata = decode(encd);
-//
-//        if (!Arrays.equals(data, dedata)) {
-//            System.exit(0);
-//        }
-
-//        Log.d("CSMS", encd);
-        Log.d("CSMS", "do transport");
+        log("run");
         try {
-
-            //decodee(new short[100]);
-            //Thread.sleep(2500);
-            //int o = 100/0;
-
             readTask = new ReadTask();
             sendTask = new SendTask();
 
@@ -203,100 +135,144 @@ public class TransportTask  implements Runnable {
             //sendThread.setDaemon(true);
             sendThread.start();
 
-            //short[] superBuff = new short[25000];
+            String pattern = "XxXxXx";
+            String inMessage = new String();
+            String[] outMessages = null;
+            long waitForConfimColdown = 0;
+            long resendCount = 0;
+
             while (true) {
-                //Thread.sleep(1000);
+                if (state == State.READ) {
+                    Thread.sleep(100);
+                }
+                while (!readTask.inQueue.isEmpty()) {
+                    Character ch = readTask.inQueue.take();
+                    pattern = pattern.substring(1) + ch;
 
-//                sleep(2000);
-//                sendTask.inQueue.put("1234567890");
-//                sleep(2000);
-//
-                Character symbol = readTask.outQueue.take();
-                Log.d("CSMS:", symbol.toString());
-                Intent intent = new Intent("my-integer");
-                // Adding some data
-                intent.putExtra("message", symbol);
-                LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+                    log("take '" + ch + "'");
 
-//                short[] inBytes = new short[320];
-//                Log.d("CSMS", "outQueue " + readTask.outQueue.size() + " inQueue " + sendTask.inQueue.size());
-//                encode(inBytes);
+                    if (pattern == RESTART_PATTERN) {
+                        log("detect pattern " + pattern);
+                        throw new Exception();
+                    } else if (ch == AWAKE_SIGNAL) {
+                        if (state == State.IDLE) {
+                            log("awake");
+                            sendControlSignal(SUCCESS_SIGNAL);
+                            setState(State.READ);
+                        }
+                    } else if (ch == SUCCESS_SIGNAL) {
+                        if (state == State.WAIT_FOR_CONFIRM) {
+                            log("succes confirm");
+                            // CONFIRM
+                            resendCount = 0;
+                            setState(State.SEND);
+                            outMessages = Arrays.copyOfRange(outMessages, 1, outMessages.length);
+                        }
+                    } else if (ch == FAIL_SIGNAL) {
+                        if (state == State.WAIT_FOR_CONFIRM) {
+                            log("fail confirm");
+                            // RESEND
+                            setState(State.SEND);
+                        }
+                    } else if (ch == '*') {
+                        if (state == State.READ) {
+                            inMessage = "*";
+                            log("in message: " + inMessage);
+                        }
+                    } else if (ch >= '0' && ch <= '8' || ch == 'D') {
+                        if (state == State.READ) {
+                            inMessage += ch;
+                            log("in message: " + inMessage);
+                        }
+                    } else if (ch == '#') {
+                        if (state == State.READ) {
+                            inMessage += "#";
+                            log("in message: " + inMessage);
+                            if (inMessage.equals("*D#")) {
+                                log("receive sequence finished");
+                                inQueue.put(DtmfPacking.mergeBytesQueue(msgBlocks));
+                                msgBlocks.clear();
+                                sendControlSignal(SUCCESS_SIGNAL);
+                            } else {
+                                byte[] data = DtmfPacking.unpack(inMessage);
+                                if (data != null) {
+                                    msgBlocks.add(data);
+                                    log("unpack success");
+                                    sendControlSignal(SUCCESS_SIGNAL);
+                                } else {
+                                    log("unpack fail");
+                                    sendControlSignal(FAIL_SIGNAL);
+                                }
+                            }
+                            inMessage = new String();
+                        }
+                    }
+                }
 
+                if (state == State.READ && !outQueue.isEmpty()) {
+                    OutRequest req = outQueue.element();
+                    if (req.request != null) {
+                        if (req.request == "RESTART_REMOTE_DEVICE") {
+                            log("start send " + req.request);
+                            while(!sendTask.outQueue.isEmpty()) {
+                                Thread.sleep(100);
+                            }
+                            Thread.sleep(2000);
+                            sendTask.outQueue.put(RESTART_PATTERN);
+                            while(!sendTask.outQueue.isEmpty()) {
+                                Thread.sleep(100);
+                            }
+                            Thread.sleep(1000);
+                            readTask.inQueue.clear();
+                            outQueue.take();
+                            log("finish send " + req.request);
+                        }
+                    } else if (req.data != null) {
+                        outMessages = DtmfPacking.multipack(req.data, prefs.bytesPerPack);
+                        log("pack bytes " + req.data.length + " to send : ");
+                        for (String msg : outMessages) {
+                            log(msg);
+                        }
+                        setState(State.SEND);
+                    }
+                }
 
-//                if (i + inBytes.length > superBuff.length) break;
-//
-//                System.arraycopy(inBytes, 0, superBuff, i, inBytes.length);
-//                i += inBytes.length;
-//                Log.d("CSMS", ""+i);
+                if (state == State.SEND) {
+                    if (outMessages == null || outMessages.length == 0) {
+                        log("nothing to send");
+                        setState(State.READ);
+                        if (!outQueue.isEmpty()) outQueue.take();
+                    } else {
+                        log("sleep before send " + (prefs.controlDuration + prefs.controlAwait));
+                        Thread.sleep(prefs.controlDuration);
+                        Thread.sleep(prefs.controlAwait);
+                        String msg = outMessages[0];
+                        if (resendCount == 0) log("send " + msg);
+                        else log("resend ("+resendCount+") " + msg);
+                        sendTask.outQueue.put(msg);
+                        setState(State.WAIT_FOR_CONFIRM);
+                        waitForConfimColdown = 0;
+                        resendCount++;
+                    }
+                }
 
-               // Log.d("CSMS", "readTask.outQueue: "+readTask.outQueue.size());
-//                String decode = decode(inBytes);
-//                if (!decode.isEmpty())
-//                    Log.d("CSMS", "transport: "+decode);
-
-
-
+                if (state == State.WAIT_FOR_CONFIRM) {
+                    if (sendTask.outQueue.isEmpty() && waitForConfimColdown == 0) {
+                        waitForConfimColdown = System.currentTimeMillis() + prefs.confirmWait;
+                        log("confirm coldown " + waitForConfimColdown);
+                    }
+                    if (waitForConfimColdown > 0 && waitForConfimColdown < System.currentTimeMillis()) {
+                        log("expire coldown at " + System.currentTimeMillis());
+                        setState(State.SEND);
+                    }
+                }
             }
-//            Log.d("CSMS", "PLAY");
-//            Thread.sleep(1000);
-//            int frequency = 8000;
-//            int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
-//            int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-//
-//            int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
-//
-//            AudioTrack audio = new AudioTrack(AudioManager.STREAM_MUSIC,
-//                    frequency,
-//                    channelConfiguration, //2 channel
-//                    audioEncoding, // 16-bit
-//                    superBuff.length * 2,
-//                    AudioTrack.MODE_STATIC);
-//
-//            audio.write(superBuff, 0, superBuff.length);
-//
-//            audio.play();
-//
-//            i++;
-////            String decode = decode(superBuff);
-////            if (!decode.isEmpty())
-////                Log.d("CSMS", "transport: "+decode);
-//
-//            i = 0;
-//            while (true) {
-//                short[] localBuf = new short[160];
-//                if (i + localBuf.length > superBuff.length) break;
-//                System.arraycopy(superBuff, i, localBuf, 0, localBuf.length);
-//                i += localBuf.length;
-//
-////                Log.d("CSMS", ""+i+" queue: " + sendTask.inQueue.size());
-////                sendTask.inQueue.put(localBuf);
-//
-//                String decode = decode(localBuf);
-//                if (!decode.isEmpty())
-//                    Log.d("CSMS", "transport: "+decode);
-//                //Thread.sleep(900 * localBuf.length / 8000);
-//            }
-//
-////            Thread.sleep(5000);
-////            int o = 100/0;
-
-//            while (true) {
-//                Thread.sleep(1000);
-//            }
 
         } catch (Exception e) {
-            Log.d("CSMS", "transport crash");
+            Log.e("TRPT", "crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
-
-//        finally {
-//            //destroy();
-//            if (sendThread != null) sendThread.interrupt();
-//            if (readThread != null) readThread.interrupt();
-//            WorkerService.breakExec.set(true);
-//            //System.exit(0);
-//        }
     }
 }

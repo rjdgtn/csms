@@ -58,7 +58,7 @@ public class LauncherService extends Service {
     }
 
     public void onCreate() {
-        Log.d("CSMS", "LAUNCHER create");
+        Log.d("MY launcher", "create");
         super.onCreate();
 
         Notification.Builder builder = new Notification.Builder(this)
@@ -69,7 +69,7 @@ public class LauncherService extends Service {
         startForeground(777, notification);
 
         timer = new Timer();
-        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 5000);
+        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 10000);
     }
 
 
@@ -77,7 +77,7 @@ public class LauncherService extends Service {
         timer.cancel();
         WorkerService.stop(getApplicationContext());
         super.onDestroy();
-        Log.d("CSMS", "LAUNCHER destroy");
+        Log.d("MY launcher", "destroy");
     }
 
     public IBinder onBind(Intent intent) {
@@ -93,9 +93,9 @@ public class LauncherService extends Service {
 
         @Override
         public void run() {
-            Log.d("CSMS", "check worker");
+           // Log.v("MY CSMS", "check worker");
             //if (!WorkerService.isRunning(context)) {
-                Log.d("CSMS", "start worker");
+                Log.v("MY LCHR", "start worker");
                 WorkerService.start(context);
             //}
         }

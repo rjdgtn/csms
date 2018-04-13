@@ -8,8 +8,10 @@ import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.Switch;
@@ -26,12 +28,13 @@ import java.util.concurrent.TimeUnit;
 
 import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
-public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
+public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, CompoundButton.OnClickListener  {
 
     // Used to load the 'native-lib' library on application startup.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        DtmfPacking.pack(new byte[]{1,2,3,4,5});
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -39,9 +42,10 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 //        TextView tv = (TextView) findViewById(R.id.sample_text);
 //        tv.setText();
 //        stringFromJNI();
-
+        ((TextView) findViewById(R.id.textView1)).setMovementMethod(new ScrollingMovementMethod());
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));
+        ((Button)findViewById(R.id.sendButton)).setOnClickListener(this);
 
         TimerTask schedulerTask = new TimerTask() {
             public void run() {
@@ -62,15 +66,14 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
      */
     public native String stringFromJNI();
 
-    protected void OnClick(View view) {
-//        TransportTask transportTask = new TransportTask();
-//        ProcessorTask processorTask = new ProcessorTask();
-//
-//        processorTask.execute();
-//        transportTask.execute();
-        //rjdgtn.csms.LauncherService.start(getApplicationContext());
-//        Thread thread;
-//        thread.interrupt();
+    public void onClick(View view) {
+        try {
+            OutRequest r = new OutRequest();
+            r.data = new byte[]{1,2,3,4,5};
+            TransportTask.outQueue.put(r);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -91,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         // This registers mMessageReceiver to receive messages.
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(mMessageReceiver,
-                        new IntentFilter("my-integer"));
+                        new IntentFilter("transport_log"));
     }
 
     // Handling the received Intents for the "my-integer" event
@@ -99,11 +102,10 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         @Override
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
-            Character ch = intent.getCharExtra("message",'\0');
+            String log = intent.getStringExtra("log");
 
             TextView tv = ((TextView)findViewById(R.id.textView1));
-            tv.setText(tv.getText() + ch.toString());
-            //
+            tv.setText(log + "\n" + tv.getText());
         }
     };
 

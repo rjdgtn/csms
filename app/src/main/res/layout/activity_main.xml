@@ -30,6 +30,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:maxLines="1000"
+                android:scrollbars="vertical"
                 android:text="Worker status"
                 android:textAppearance="@style/TextAppearance.AppCompat.Large" />
 
@@ -39,16 +41,30 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="0"
                 android:checked="false"
-                android:focusable="false"
-                android:clickable="false" />
+                android:clickable="false"
+                android:focusable="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/sendButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Button"
+                tools:text="Send" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/textView1"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="Test status"
-            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+            android:layout_height="wrap_content"
+            android:text="..."
+            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

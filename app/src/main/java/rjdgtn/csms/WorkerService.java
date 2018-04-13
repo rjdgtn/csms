@@ -55,7 +55,7 @@ public class WorkerService extends Service {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
 
 
-        Log.d("CSMS", "WORKER create");
+        Log.d("MY WRKR", "create");
         super.onCreate();
 
         breakExec = new AtomicBoolean(false);
@@ -68,7 +68,7 @@ public class WorkerService extends Service {
         startForeground(999, notification);
 
         transportTask = new TransportTask(getApplicationContext());
-        processorTask = new ProcessorTask(transportTask.inQueue, transportTask.outQueue);
+        processorTask = new ProcessorTask(getApplicationContext());
 
         transportThread = new Thread(transportTask);
         transportThread.start();
@@ -79,7 +79,7 @@ public class WorkerService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d("CSMS", "WORKER destroy");
+        Log.d("MY WRKR", "destroy");
         System.exit(0);
 //        processorThread.interrupt();
 //        transportThread.interrupt();
@@ -95,7 +95,7 @@ public class WorkerService extends Service {
     public class TryMe implements Thread.UncaughtExceptionHandler {
         @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
-            Log.d("CSMS", "uncaughtException");
+            Log.d("MY WRKR", "uncaughtException");
             System.exit(0);
         }
     }

@@ -4,8 +4,8 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "rjdgtn.csms"
-        minSdkVersion 21
-        targetSdkVersion 26
+        minSdkVersion 14
+        targetSdkVersion 14
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"

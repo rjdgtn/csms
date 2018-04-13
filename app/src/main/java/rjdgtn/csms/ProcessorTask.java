@@ -1,8 +1,15 @@
 package rjdgtn.csms;
 
+import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 
 import static java.lang.Thread.sleep;
@@ -12,30 +19,34 @@ import static java.lang.Thread.sleep;
  */
 
 public class ProcessorTask implements Runnable {
-    public BlockingQueue<Request> inQueue;
-    public BlockingQueue<Request> outQueue;
+//    public BlockingQueue<Request> outQueue;
+//    public BlockingQueue<Request> outQueue;
 
-    public ProcessorTask(BlockingQueue<Request> in, BlockingQueue<Request> out) {
-        inQueue = in;
-        outQueue = out;
-        Log.d("CSMS", "PROCESSOR create");
+    Context contex;
+
+    public ProcessorTask(Context contex) {
+        this.contex = contex;
+        Log.d("MY PRCS", "create");
     }
 
 
     @Override
     public void run() {
-        Log.d("CSMS", "do process");
+        Log.d("MY PRCS", "start");
         try {
-            while (true) {
-                Thread.sleep(1000);
-
-                Log.d("CSMS", "process");
-
-            }
-
+//            while (true) {
+//                AirplaneMode.setFlightMode(contex, !AirplaneMode.isFlightModeEnabled(contex));
+//                Thread.sleep(5000);
+//
+//                Log.d("MY CSMS", "process");
+//            }
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
 
         }
 
     }
+
 }
+
+
