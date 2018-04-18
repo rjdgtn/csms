@@ -110,26 +110,43 @@ public class TransportTask  implements Runnable {
     }
 
     private void setState(State st) {
-        log("shitch state " + stateToStr(state) + " to "+ stateToStr(st));
+        log("switch state " + stateToStr(state) + " to "+ stateToStr(st));
         state = st;
     }
 
-    private void log(String str) {
-        Log.d("MY TRPT", str);
+    private void logv(String str) {
+        Log.d("MY TRPV", str);
         Intent intent = new Intent("transport_log");
         intent.putExtra("log", str);
+        intent.putExtra("ch", "TRPV");
         LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+
+    }
+    private void log(String str) {
+        Log.d("MY TRPT", str);
+        Intent intent = new Intent("csms_log");
+        intent.putExtra("log", str);
+        intent.putExtra("ch", "TRPT");
+        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+    }
+
+    private void log(byte[] data) {
+        String res = new String();
+        for (byte b : data) {
+            res += b + " ";
+        }
+        log(res);
     }
 
     public void run() {
         log("run");
         try {
-            readTask = new ReadTask();
-            sendTask = new SendTask();
+            readTask = new ReadTask(contex);
+            sendTask = new SendTask(contex);
 
             readThread = new Thread(readTask);
             //readThread.setDaemon(true);
-            readThread.start();
+            //readThread.start();
 
             sendThread = new Thread(sendTask);
             //sendThread.setDaemon(true);
@@ -149,7 +166,7 @@ public class TransportTask  implements Runnable {
                     Character ch = readTask.inQueue.take();
                     pattern = pattern.substring(1) + ch;
 
-                    log("take '" + ch + "'");
+                    logv("take '" + ch + "'");
 
                     if (pattern == RESTART_PATTERN) {
                         log("detect pattern " + pattern);
@@ -182,15 +199,17 @@ public class TransportTask  implements Runnable {
                     } else if (ch >= '0' && ch <= '8' || ch == 'D') {
                         if (state == State.READ) {
                             inMessage += ch;
-                            log("in message: " + inMessage);
+                            logv("in message: " + inMessage);
                         }
                     } else if (ch == '#') {
                         if (state == State.READ) {
                             inMessage += "#";
-                            log("in message: " + inMessage);
+                            log("readed: " + inMessage);
                             if (inMessage.equals("*D#")) {
                                 log("receive sequence finished");
-                                inQueue.put(DtmfPacking.mergeBytesQueue(msgBlocks));
+                                byte[] res = DtmfPacking.mergeBytesQueue(msgBlocks);
+                                log(res);
+                                inQueue.put(res);
                                 msgBlocks.clear();
                                 sendControlSignal(SUCCESS_SIGNAL);
                             } else {

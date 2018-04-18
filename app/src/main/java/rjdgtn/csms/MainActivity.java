@@ -5,11 +5,17 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -19,6 +25,7 @@ import android.widget.TextView;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -28,15 +35,18 @@ import java.util.concurrent.TimeUnit;
 
 import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
-public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, CompoundButton.OnClickListener  {
+public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
     // Used to load the 'native-lib' library on application startup.
+    TreeSet<String> logChannels = new TreeSet<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         DtmfPacking.pack(new byte[]{1,2,3,4,5});
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        logChannels.add("PRCR");
 
         // Example of a call to a native method
 //        TextView tv = (TextView) findViewById(R.id.sample_text);
@@ -45,7 +55,16 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         ((TextView) findViewById(R.id.textView1)).setMovementMethod(new ScrollingMovementMethod());
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));
-        ((Button)findViewById(R.id.sendButton)).setOnClickListener(this);
+
+//        FloatingActionButton button = (FloatingActionButton) findViewById(R.id.floatingActionButton);
+//        registerForContextMenu(button);
+//        button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//            }
+//        });
 
         TimerTask schedulerTask = new TimerTask() {
             public void run() {
@@ -60,19 +79,34 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         scheduler.schedule(schedulerTask, 0, 1000);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.your_context_menu, menu);
+        return true;
+    }
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
     public native String stringFromJNI();
 
-    public void onClick(View view) {
-        try {
-            OutRequest r = new OutRequest();
-            r.data = new byte[]{1,2,3,4,5};
-            TransportTask.outQueue.put(r);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getTitle().equals("test")) {
+            try {
+                OutRequest r = new OutRequest();
+                r.data = new byte[]{1,2,3,4,5};
+                TransportTask.outQueue.put(r);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return true;
+        } else {
+            if (logChannels.contains(item.getTitle())) logChannels.remove(item.getTitle());
+            else logChannels.add(item.getTitle().toString());
+            return true;
         }
     }
 
@@ -94,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         // This registers mMessageReceiver to receive messages.
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(mMessageReceiver,
-                        new IntentFilter("transport_log"));
+                        new IntentFilter("csms_log"));
     }
 
     // Handling the received Intents for the "my-integer" event
@@ -103,9 +137,13 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
             String log = intent.getStringExtra("log");
+            String channel = intent.getStringExtra("ch");
 
-            TextView tv = ((TextView)findViewById(R.id.textView1));
-            tv.setText(log + "\n" + tv.getText());
+            if (logChannels.contains(channel)) {
+                TextView tv = ((TextView) findViewById(R.id.textView1));
+                tv.setText(channel + ": " + log + "\n" + tv.getText());
+            }
+
         }
     };
 

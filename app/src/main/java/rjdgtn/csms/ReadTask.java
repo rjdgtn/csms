@@ -1,8 +1,11 @@
 package rjdgtn.csms;
 
+import android.content.Context;
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.util.concurrent.BlockingQueue;
@@ -22,11 +25,21 @@ public class ReadTask implements Runnable {
     public BlockingQueue<Character> inQueue;;
 
     public native char decode(short[] data);
+    Context contex;
 
-    public ReadTask() {
+    public ReadTask(Context contex) {
+        this.contex = contex;
         inQueue = new LinkedBlockingQueue<Character>();
 
-        Log.d("MY READ", "create");
+        log("create");
+    }
+
+    private void log(String str) {
+        Log.d("MY READ", str);
+        Intent intent = new Intent("csms_log");
+        intent.putExtra("log", str);
+        intent.putExtra("ch", "READ");
+        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
     }
 
     public static AtomicInteger bufferSize = new AtomicInteger(350);
@@ -35,7 +48,7 @@ public class ReadTask implements Runnable {
 //        return (((i>>8)&0xff)+((i << 8)&0xff00));
 //    }
     public void run() {
-        Log.d("MY READ", "run");
+        log("run");
         AudioRecord audioRecord = null;
         try {
             int frequency = 8000;
@@ -53,7 +66,7 @@ public class ReadTask implements Runnable {
             int wpos = 0;
             short[] decodeBuffer = null;
 
-            Log.d("MY READ", "loop");
+            log("loop");
             while (true) {
                 int rpos = 0;
                 int rsz = audioRecord.read(buffer, 0, buffer.length);
@@ -82,7 +95,7 @@ public class ReadTask implements Runnable {
                         //if (symbol != '\0') Log.v("MY READ", "detect "+symbol);
                         if (prevSymbol != symbol) {
                             if (prevSymbol != '\0' && prevSymbol != prevMeanSymbol) {
-                                Log.v("MY READ", "put " + prevSymbol + " dup " + dupCounter);
+                                log("put " + prevSymbol + " dup " + dupCounter);
                                 inQueue.put(new Character(prevSymbol));
                                 prevMeanSymbol = prevSymbol;
                                 dupCounter = 0;
@@ -101,7 +114,7 @@ public class ReadTask implements Runnable {
             }
 
         } catch (Exception e) {
-            Log.e("READ", "crash");
+            log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 

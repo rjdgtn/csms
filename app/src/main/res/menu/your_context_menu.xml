@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="test" />
+    <item android:title="TRPT" />
+    <item android:title="TRPV" />
+    <item android:title="SEND" />
+    <item android:title="READ" />
+    <item android:title="REBOOT REMOTE" />
+</menu>
