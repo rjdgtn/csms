@@ -6,5 +6,6 @@
     <item android:title="echo" />
     <item android:title="test" />
     <item android:title="logs" />
+    <item android:title="clear" />
     <item android:title="reboot_remote" />
 </menu>

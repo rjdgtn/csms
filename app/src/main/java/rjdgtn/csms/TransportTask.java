@@ -37,7 +37,7 @@ public class TransportTask  implements Runnable {
             32};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 30;
+        public byte bytesPerPack = 5;
         public short signalDuration = 315;
         public short confirmWait = 5000;
         public short controlDelay = (short)(signalDuration * 2);
@@ -54,6 +54,7 @@ public class TransportTask  implements Runnable {
     enum State {
         IDLE,
         SEND,
+        SENDING,
         WAIT_FOR_CONFIRM,
         READ
     };
@@ -61,6 +62,7 @@ public class TransportTask  implements Runnable {
     private String stateToStr(State st) {
         if (st == State.IDLE) return "IDLE";
         if (st == State.SEND) return "SEND";
+        if (st == State.SENDING) return "SENDING";
         if (st == State.WAIT_FOR_CONFIRM) return "WAIT_FOR_CONFIRM";
         if (st == State.READ) return "READ";
         else return "UNKNOWN";
@@ -93,7 +95,7 @@ public class TransportTask  implements Runnable {
     }
 
     private void sendControlSignal(String signal) throws InterruptedException {
-        log("push control " + signal);
+        logv("send control " + signal);
 
         sendTask.outQueue.put("sleep " + prefs.controlDelay);
         sendTask.outQueue.put("callDuration " + prefs.controlDuration);
@@ -111,7 +113,8 @@ public class TransportTask  implements Runnable {
     }
 
     private void setState(State st) {
-        log(stateToStr(state) + " => "+ stateToStr(st));
+        //log(stateToStr(state) + " => "+ stateToStr(st));
+        log(stateToStr(st));
         state = st;
     }
 
@@ -140,6 +143,11 @@ public class TransportTask  implements Runnable {
     }
 
     public void run() {
+        String packed = DtmfPacking.pack(new byte[]{0,1,2,3,4,5,6,7,8,9});
+        byte[] unp = DtmfPacking.unpack(packed);
+
+        String [] s = DtmfPacking.multipack(new byte[]{0,1,2,3,4,5,6,7,8,9}, prefs.bytesPerPack);
+
         boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");
         try {
@@ -180,48 +188,53 @@ public class TransportTask  implements Runnable {
                             setState(State.READ);
                         }
                     } else if (ch == SUCCESS_SIGNAL) {
-                        if (state == State.WAIT_FOR_CONFIRM) {
-                            log("succes confirm");
+                        if (state == State.WAIT_FOR_CONFIRM || state == State.SENDING) {
+                            log("SUCCESS confirm");
                             // CONFIRM
                             resendCount = 0;
                             setState(State.SEND);
                             outMessages = Arrays.copyOfRange(outMessages, 1, outMessages.length);
                         }
                     } else if (ch == FAIL_SIGNAL) {
-                        if (state == State.WAIT_FOR_CONFIRM) {
-                            log("fail confirm");
+                        if (state == State.WAIT_FOR_CONFIRM || state == State.SENDING) {
+                            log("FAIL confirm");
                             // RESEND
                             setState(State.SEND);
                         }
                     } else if (ch == '*') {
                         if (state == State.READ) {
                             inMessage = "*";
-                            log("in message: " + inMessage);
+                            log("in: " + inMessage);
                         }
                     } else if (ch >= '0' && ch <= '8' || ch == 'D') {
                         if (state == State.READ) {
                             inMessage += ch;
-                            logv("in message: " + inMessage);
+                            log("in: " + inMessage);
                         }
                     } else if (ch == '#') {
                         if (state == State.READ) {
                             inMessage += "#";
-                            log("readed: " + inMessage);
+                            log("in: " + inMessage);
                             if (inMessage.equals("*D#")) {
-                                log("receive sequence finished");
+                                log("FINISHED");
                                 byte[] res = DtmfPacking.mergeBytesQueue(msgBlocks);
                                 log(res);
                                 inQueue.put(res);
+                                msgBlocks.clear();
+                                sendControlSignal(SUCCESS_SIGNAL);
+
+                            }else if (inMessage.equals("*C#")) {
+                                log("FLUSH");
                                 msgBlocks.clear();
                                 sendControlSignal(SUCCESS_SIGNAL);
                             } else {
                                 byte[] data = DtmfPacking.unpack(inMessage);
                                 if (data != null) {
                                     msgBlocks.add(data);
-                                    log("unpack success");
+                                    log("SUCCESS " + SUCCESS_SIGNAL);
                                     sendControlSignal(SUCCESS_SIGNAL);
                                 } else {
-                                    log("unpack fail");
+                                    log("FAIL " + FAIL_SIGNAL);
                                     sendControlSignal(FAIL_SIGNAL);
                                 }
                             }
@@ -233,7 +246,7 @@ public class TransportTask  implements Runnable {
                 if (state == State.READ && !outQueue.isEmpty()) {
                     OutRequest req = outQueue.element();
                     if (req.request != null) {
-                        if (req.request == "RESTART_REMOTE_DEVICE") {
+                        if (req.request == "reboot_remote") {
                             log("start send " + req.request);
                             while(!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
@@ -250,7 +263,8 @@ public class TransportTask  implements Runnable {
                         }
                     } else if (req.data != null) {
                         outMessages = DtmfPacking.multipack(req.data, prefs.bytesPerPack);
-                        log("pack bytes " + req.data.length + " to send : ");
+                        log("");
+                        log("pack bytes " + req.data.length + " :");
                         for (String msg : outMessages) {
                             log(msg);
                         }
@@ -260,30 +274,40 @@ public class TransportTask  implements Runnable {
 
                 if (state == State.SEND) {
                     if (outMessages == null || outMessages.length == 0) {
-                        log("nothing to send");
+                        logv("nothing to send");
+                        resendCount = 0;
+                        setState(State.READ);
+                        if (!outQueue.isEmpty()) outQueue.take();
+                    } else if (resendCount >= 6) {
+                        log("too much resend");
+                        resendCount = 0;
                         setState(State.READ);
                         if (!outQueue.isEmpty()) outQueue.take();
                     } else {
-                        log("sleep before send " + (prefs.controlDuration + prefs.controlAwait));
+                        setState(State.SENDING);
+                        logv("sleep before send " + (prefs.controlDuration + prefs.controlAwait));
                         Thread.sleep(prefs.controlDuration);
                         Thread.sleep(prefs.controlAwait);
                         String msg = outMessages[0];
                         if (resendCount == 0) log("send " + msg);
                         else log("resend ("+resendCount+") " + msg);
                         sendTask.outQueue.put(msg);
-                        setState(State.WAIT_FOR_CONFIRM);
                         waitForConfimColdown = 0;
                         resendCount++;
                     }
                 }
 
-                if (state == State.WAIT_FOR_CONFIRM) {
+                if (state == State.SENDING) {
                     if (sendTask.outQueue.isEmpty() && waitForConfimColdown == 0) {
                         waitForConfimColdown = System.currentTimeMillis() + prefs.confirmWait;
-                        log("confirm coldown " + waitForConfimColdown);
+                        logv("confirm coldown " + waitForConfimColdown);
+                        setState(State.WAIT_FOR_CONFIRM);
                     }
+                }
+                if (state == State.WAIT_FOR_CONFIRM) {
                     if (waitForConfimColdown > 0 && waitForConfimColdown < System.currentTimeMillis()) {
-                        log("expire coldown at " + System.currentTimeMillis());
+                        log("coldown expire");
+                        logv("expire coldown at " + System.currentTimeMillis());
                         setState(State.SEND);
                     }
                 }

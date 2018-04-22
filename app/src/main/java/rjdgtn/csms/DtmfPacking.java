@@ -30,11 +30,13 @@ public class DtmfPacking {
 
     public static String[] multipack(byte[] data, int splitSize) {
         int blockNum = (int)ceil(data.length / (float)splitSize);
-        String[] res = new String[blockNum+1];
+        String[] res = new String[blockNum+2];
         for (int i = 0; i < blockNum; i ++) {
             byte[] block = Arrays.copyOfRange(data, i * splitSize, min(data.length, (i+1) * splitSize));
-            res[i] = pack(block);
+            res[i+1] = pack(block);
         }
+
+        res[0] = "*C#";
         res[blockNum] = "*D#";
         return res;
 

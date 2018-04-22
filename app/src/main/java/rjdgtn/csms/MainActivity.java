@@ -31,6 +31,8 @@ import android.widget.PopupMenu;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -124,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 }
             });
         } else if (itemName.equals("logs")) {
-            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.textView1), Gravity.CENTER);
+            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.workerStatus));
             popupMenu.inflate(R.menu.logs_menu);
             popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 @Override
@@ -136,6 +138,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
+        } else if (itemName.equals("clear")) {
+            TextView tv = ((TextView) findViewById(R.id.textView1));
+            tv.setText("");
         }
         return true;
     }
@@ -170,7 +175,19 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
             if (logChannels.contains(channel)) {
                 TextView tv = ((TextView) findViewById(R.id.textView1));
-                tv.setText(channel + ": " + log + "\n" + tv.getText());
+                //tv.setText(channel + ": " + log + "\n" + tv.getText());
+                String text = tv.getText().toString();
+
+                ArrayList<String> lines = new ArrayList<String>(Arrays.asList(text.split("\r\n|\r|\n")));
+                while(lines.size() > 100) lines.remove(lines.size()-1);
+
+                lines.add(0, channel + ": " + log);
+
+                String listString = "";
+                for (String s : lines) {
+                    listString += s + "\n";
+                }
+                tv.setText(listString);
             }
 
         }

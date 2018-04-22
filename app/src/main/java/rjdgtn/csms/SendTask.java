@@ -67,6 +67,8 @@ public class SendTask implements Runnable {
                         AudioTrack.MODE_STREAM);
 
                 audio.play();
+            } else {
+                log("!!!!!!fake send");
             }
             log("loop");
             while (true) {
