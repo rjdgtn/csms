@@ -8,10 +8,17 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.util.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -38,6 +45,21 @@ public class WorkerService extends Service {
         Intent intent = new Intent(context, WorkerService.class);
         context.stopService(intent);
     }
+    public static void send(Context context, HashMap<String, String> add) {
+        Intent intent = new Intent(context, WorkerService.class);
+        for ( Map.Entry<String, String> entry : add.entrySet() ) {
+            intent.putExtra(entry.getKey(), entry.getValue());
+        }
+        context.startService(intent);
+    }
+
+    private void log(String str) {
+        Log.d("MY WRKR", str);
+        Intent intent = new Intent("csms_log");
+        intent.putExtra("log", str);
+        intent.putExtra("ch", "WRKR");
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+    }
 
     public static AtomicBoolean breakExec;
 
@@ -55,7 +77,7 @@ public class WorkerService extends Service {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
 
 
-        Log.d("MY WRKR", "create");
+        log("create");
         super.onCreate();
 
         breakExec = new AtomicBoolean(false);
@@ -64,7 +86,7 @@ public class WorkerService extends Service {
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentTitle("CSMS")
                 .setContentText("Worker active");
-        Notification notification = builder.build();
+        Notification notification = builder.getNotification();
         startForeground(999, notification);
 
         transportTask = new TransportTask(getApplicationContext());
@@ -78,8 +100,21 @@ public class WorkerService extends Service {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent.getExtras() != null) {
+            try {
+                ProcessorTask.localCommands.put(intent.getExtras());
+            } catch (Exception e) {
+                log("crash");
+                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+            }
+        }
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
     public void onDestroy() {
-        Log.d("MY WRKR", "destroy");
+        log("destroy");
         System.exit(0);
 //        processorThread.interrupt();
 //        transportThread.interrupt();
@@ -95,19 +130,15 @@ public class WorkerService extends Service {
     public class TryMe implements Thread.UncaughtExceptionHandler {
         @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
-            Log.d("MY WRKR", "uncaughtException");
+            StringWriter errors = new StringWriter();
+            throwable.printStackTrace(new PrintWriter(errors));
+            log("uncaughtException :\n" + throwable.getMessage() + "\n" + errors.toString());
+            Log.e("CRASH", throwable.getMessage());
+            Log.e("CRASH", errors.toString());
             System.exit(0);
         }
     }
 
-    //private BlockingQueue<>
 
-//    private enum COMMANDS {
-//        UNKNOWN,
-//        STATUS,
-//        READ,
-//        SEND,
-//        RESTART
-//    }
 
 }

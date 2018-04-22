@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -43,11 +44,12 @@ public class SendTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "SEND");
-        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+        contex.sendBroadcast(intent);
     }
 
     public void run() {
         log("run");
+        boolean emulator = Build.FINGERPRINT.startsWith("generic");
         AudioTrack audio = null;
         try {
             int frequency = 8000;
@@ -56,15 +58,16 @@ public class SendTask implements Runnable {
 
             int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
 
-//            audio = new AudioTrack(AudioManager.STREAM_MUSIC,
-//                    frequency,
-//                    channelConfiguration, //2 channel
-//                    audioEncoding, // 16-bit
-//                    bufsize * 5,
-//                    AudioTrack.MODE_STREAM);
-//
-//            audio.play();
+            if (!emulator) {
+                audio = new AudioTrack(AudioManager.STREAM_MUSIC,
+                        frequency,
+                        channelConfiguration, //2 channel
+                        audioEncoding, // 16-bit
+                        bufsize * 5,
+                        AudioTrack.MODE_STREAM);
 
+                audio.play();
+            }
             log("loop");
             while (true) {
                 if (outQueue.isEmpty()) {
@@ -111,6 +114,7 @@ public class SendTask implements Runnable {
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
+        log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
 
 //        } catch (Exception e) {

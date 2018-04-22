@@ -4,7 +4,7 @@
     android:installLocation="internalOnly">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <!--uses-permission android:name="android.permission.WRITE_SETTINGS" /-->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" / -->
@@ -24,13 +24,11 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!--
-        service
+        <service
             android:name=".LauncherService"
             android:enabled="true"
             android:exported="true"
@@ -39,22 +37,17 @@
             android:name=".WorkerService"
             android:enabled="true"
             android:exported="true"
-            android:process=":workerProcess"/
-        -->
+            android:process=":workerProcess"/>
 
-        <service
+        <!--service
             android:name=".LauncherService"
             android:enabled="true"
             android:exported="true" />
         <service
             android:name=".WorkerService"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="true" /!-->
 
-        <activity
-            android:name=".ControlActivity"
-            android:label="@string/title_activity_control"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>

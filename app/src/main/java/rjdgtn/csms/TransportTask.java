@@ -2,6 +2,7 @@ package rjdgtn.csms;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -110,7 +111,7 @@ public class TransportTask  implements Runnable {
     }
 
     private void setState(State st) {
-        log("switch state " + stateToStr(state) + " to "+ stateToStr(st));
+        log(stateToStr(state) + " => "+ stateToStr(st));
         state = st;
     }
 
@@ -119,7 +120,7 @@ public class TransportTask  implements Runnable {
         Intent intent = new Intent("transport_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPV");
-        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+        contex.sendBroadcast(intent);
 
     }
     private void log(String str) {
@@ -127,7 +128,7 @@ public class TransportTask  implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPT");
-        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+        contex.sendBroadcast(intent);
     }
 
     private void log(byte[] data) {
@@ -139,6 +140,7 @@ public class TransportTask  implements Runnable {
     }
 
     public void run() {
+        boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");
         try {
             readTask = new ReadTask(contex);
@@ -146,7 +148,7 @@ public class TransportTask  implements Runnable {
 
             readThread = new Thread(readTask);
             //readThread.setDaemon(true);
-            //readThread.start();
+            if (!emulator) readThread.start();
 
             sendThread = new Thread(sendTask);
             //sendThread.setDaemon(true);
@@ -288,10 +290,11 @@ public class TransportTask  implements Runnable {
             }
 
         } catch (Exception e) {
-            Log.e("TRPT", "crash");
+            log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
+        log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
     }
 }

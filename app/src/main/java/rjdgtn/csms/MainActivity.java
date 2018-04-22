@@ -1,18 +1,24 @@
 package rjdgtn.csms;
 
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -20,9 +26,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.PopupMenu;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
@@ -47,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         setContentView(R.layout.activity_main);
 
         logChannels.add("PRCR");
+        logChannels.add("TRPT");
 
         // Example of a call to a native method
 //        TextView tv = (TextView) findViewById(R.id.sample_text);
@@ -55,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         ((TextView) findViewById(R.id.textView1)).setMovementMethod(new ScrollingMovementMethod());
         ((Switch)findViewById(R.id.switch1)).setOnCheckedChangeListener(this);
         ((Switch)findViewById(R.id.switch1)).setChecked(LauncherService.isRunning(getApplicationContext()));
+
 
 //        FloatingActionButton button = (FloatingActionButton) findViewById(R.id.floatingActionButton);
 //        registerForContextMenu(button);
@@ -92,22 +104,40 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
      */
     public native String stringFromJNI();
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getTitle().equals("test")) {
-            try {
-                OutRequest r = new OutRequest();
-                r.data = new byte[]{1,2,3,4,5};
-                TransportTask.outQueue.put(r);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return true;
-        } else {
-            if (logChannels.contains(item.getTitle())) logChannels.remove(item.getTitle());
-            else logChannels.add(item.getTitle().toString());
-            return true;
+        final String itemName = item.getTitle().toString();
+        if (itemName.equals("reboot_remote") || itemName.equals("test")) {
+            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", itemName); }});
+        } else if (itemName.equals("echo")) {
+            showEdit("echo", new StringCallback() {
+                @Override
+                public void on(final String str) {
+                    if (!str.isEmpty()) {
+                        WorkerService.send(getApplicationContext()
+                                , new HashMap<String, String>() {{
+                                    put("code", "echo");
+                                    put("msg", str);
+                                }});
+                    }
+                }
+            });
+        } else if (itemName.equals("logs")) {
+            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.textView1), Gravity.CENTER);
+            popupMenu.inflate(R.menu.logs_menu);
+            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    if (logChannels.contains(item.getTitle())) logChannels.remove(item.getTitle());
+                    else logChannels.add(item.getTitle().toString());
+                    return true;
+                }
+            });
+
+            popupMenu.show();
         }
+        return true;
     }
 
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -126,9 +156,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     public void onResume() {
         super.onResume();
         // This registers mMessageReceiver to receive messages.
-        LocalBroadcastManager.getInstance(this)
-                .registerReceiver(mMessageReceiver,
-                        new IntentFilter("csms_log"));
+       // LocalBroadcastManager.getInstance(this)
+        this.registerReceiver(mMessageReceiver, new IntentFilter("csms_log"));
     }
 
     // Handling the received Intents for the "my-integer" event
@@ -153,6 +182,33 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         LocalBroadcastManager.getInstance(this)
                 .unregisterReceiver(mMessageReceiver);
         super.onPause();
+    }
+    interface StringCallback {
+        public void on(String str);
+    }
+    protected void showEdit(String title, final StringCallback okClick ) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        final EditText input = new EditText(this);
+        input.setMinLines(3);
+       // input.setHeight(200);
+
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                okClick.on(input.getText().toString());
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
     }
 }
 

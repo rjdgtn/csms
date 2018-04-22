@@ -39,7 +39,7 @@ public class ReadTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "READ");
-        LocalBroadcastManager.getInstance(contex).sendBroadcast(intent);
+        contex.sendBroadcast(intent);
     }
 
     public static AtomicInteger bufferSize = new AtomicInteger(350);
@@ -118,6 +118,7 @@ public class ReadTask implements Runnable {
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
         }
 
+        log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
 
 //        }  catch (Exception e) {
