@@ -42,7 +42,7 @@ public class ReadTask implements Runnable {
         contex.sendBroadcast(intent);
     }
 
-    public static AtomicInteger bufferSize = new AtomicInteger(350);
+    public static AtomicInteger bufferDuration = new AtomicInteger(350);
 
 //    public static int SHORT_little_endian_TO_big_endian(int i){
 //        return (((i>>8)&0xff)+((i << 8)&0xff00));
@@ -72,7 +72,7 @@ public class ReadTask implements Runnable {
                 int rsz = audioRecord.read(buffer, 0, buffer.length);
 
                 if (rsz > 0) {
-                    int bufsz = bufferSize.get();
+                    int bufsz = bufferDuration.get() * 8;
                     if (decodeBuffer == null || decodeBuffer.length != bufsz) {
                         decodeBuffer = new short[bufsz];
                         wpos = 0;
@@ -93,13 +93,14 @@ public class ReadTask implements Runnable {
                         wpos = 0;
                         char symbol = decode(decodeBuffer);
                         //if (symbol != '\0') Log.v("MY READ", "detect "+symbol);
+
                         if (prevSymbol != symbol) {
                             if (prevSymbol != '\0' && prevSymbol != prevMeanSymbol) {
                                 log("put " + prevSymbol + " dup " + dupCounter);
                                 inQueue.put(new Character(prevSymbol));
                                 prevMeanSymbol = prevSymbol;
-                                dupCounter = 0;
                             }
+                            dupCounter = 0;
                             prevSymbol = symbol;
                         } else {
                             dupCounter++;

@@ -6,7 +6,6 @@
     <item android:title="echo" />
     <item android:title="test" />
     <item android:title="logs" />
-    <item android:title="quality_check" />
-    <item android:title="clear" />
+    <item android:title="config_speed" />
     <item android:title="reboot_remote" />
 </menu>

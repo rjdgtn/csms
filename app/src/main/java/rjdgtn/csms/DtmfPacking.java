@@ -37,7 +37,7 @@ public class DtmfPacking {
         }
 
         res[0] = "*C#";
-        res[blockNum] = "*D#";
+        res[blockNum+1] = "*D#";
         return res;
 
     }

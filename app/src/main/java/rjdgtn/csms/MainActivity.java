@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     // Used to load the 'native-lib' library on application startup.
     TreeSet<String> logChannels = new TreeSet<String>();
+    short curSignalDuration = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 }
             });
         } else if (itemName.equals("logs")) {
-            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.workerStatus));
+            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
             popupMenu.inflate(R.menu.logs_menu);
             for (int i = 0; i < popupMenu.getMenu().size(); i++) {
                 boolean enbld = logChannels.contains(popupMenu.getMenu().getItem(i).getTitle());
@@ -135,16 +136,41 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 @Override
                 public boolean onMenuItemClick(MenuItem item) {
-                    if (logChannels.contains(item.getTitle())) logChannels.remove(item.getTitle());
-                    else logChannels.add(item.getTitle().toString());
+                    if (item.getTitle().equals("clear")) {
+                        TextView tv = ((TextView) findViewById(R.id.textView1));
+                        tv.setText("");
+                    } else {
+                        if (logChannels.contains(item.getTitle()))
+                            logChannels.remove(item.getTitle());
+                        else logChannels.add(item.getTitle().toString());
+                    }
                     return true;
                 }
             });
 
             popupMenu.show();
-        } else if (itemName.equals("clear")) {
-            TextView tv = ((TextView) findViewById(R.id.textView1));
-            tv.setText("");
+        } else if (itemName.equals("config_speed")) {
+            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
+            popupMenu.inflate(R.menu.speed_config);
+            for (int i = 0; i < TransportTask.signalDurations.length; i++) {
+                int dur = TransportTask.signalDurations[i];
+                popupMenu.getMenu().add(""+dur).setCheckable(true).setChecked(dur == curSignalDuration);
+            }
+            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(final MenuItem item) {
+//                    if (logChannels.contains(item.getTitle())) logChannels.remove(item.getTitle());
+//                    else logChannels.add(item.getTitle().toString());
+                    WorkerService.send(getApplicationContext()
+                            , new HashMap<String, String>() {{
+                                put("code", "config_speed");
+                                put("value", item.getTitle().toString());
+                            }});
+                    return true;
+                }
+            });
+
+            popupMenu.show();
         }
         return true;
     }
@@ -166,11 +192,20 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         super.onResume();
         // This registers mMessageReceiver to receive messages.
        // LocalBroadcastManager.getInstance(this)
-        this.registerReceiver(mMessageReceiver, new IntentFilter("csms_log"));
+        this.registerReceiver(mLogReceiver, new IntentFilter("csms_log"));
+        this.registerReceiver(mTransportPrefReceiver, new IntentFilter("csms_transport"));
+    }
+
+    @Override
+    protected void onPause() {
+        // Unregister since the activity is not visible
+        unregisterReceiver(mLogReceiver);
+        unregisterReceiver(mTransportPrefReceiver);
+        super.onPause();
     }
 
     // Handling the received Intents for the "my-integer" event
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mLogReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
@@ -197,13 +232,15 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         }
     };
 
-    @Override
-    protected void onPause() {
-        // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance(this)
-                .unregisterReceiver(mMessageReceiver);
-        super.onPause();
-    }
+    private BroadcastReceiver mTransportPrefReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //short bytesPerPack = intent.getShortExtra("prefs.bytesPerPack", (short)0);
+            curSignalDuration = intent.getShortExtra("prefs.signalDuration", (short)0);
+            //short confirmWait = intent.getShortExtra("prefs.confirmWait", (short)0);
+        }
+    };
+
     interface StringCallback {
         public void on(String str);
     }

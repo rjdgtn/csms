@@ -21,8 +21,8 @@ import static java.lang.Thread.sleep;
  */
 
 public class TransportTask  implements Runnable {
-    private int[] signalReadLength =
-            {1000, // длительность сигнала 1/5, паузы 1/10
+    final static public int[] signalDurations =
+            {1000, // длительность сигнала 1/4, паузы 1/10
             750,
             550,
             420,
@@ -32,21 +32,31 @@ public class TransportTask  implements Runnable {
             130,
             100,
             75,
-            55,
-            42,
-            32};
+            55};
 
     public class TransportPrefs {
         public byte bytesPerPack = 5;
-        public short signalDuration = 315;
-        public short confirmWait = 5000;
-        public short controlDelay = (short)(signalDuration * 2);
-        public short controlDuration = (short)(signalDuration * 4);
-        public short controlAwait = (short)(signalDuration * 2);
-       // public short controlSignalLength = responseDuration;
-        public float readSignalDurationMult = 0.2f;
-        public float spaceMult = 0.1f;
-        //public short controlExtraSignalLength = 315;
+        public short signalDuration = 0;
+        public short confirmWait = 0;
+        public short controlDelay = 0;
+        public short controlDuration = 0;
+        public short controlAwait = 0;
+        public short readSignalDuration = 0;
+        public short spaceDuration = 0;
+
+        void setSignalDuration(short dur) {
+            signalDuration = dur;
+            controlDelay = (short)(dur * 1);
+            controlDuration = (short)(dur * 3);
+            controlAwait = (short)(dur * 1);
+            readSignalDuration = (short)(dur * 0.2);
+            spaceDuration = (short)(dur * 0.1);
+            confirmWait = (short)(dur * 15);
+        }
+
+//        TransportPrefs(int dur) {
+//            setSignalDuration((short)dur);
+//        }
     }
 
     private TransportPrefs prefs = new TransportPrefs();
@@ -94,17 +104,25 @@ public class TransportTask  implements Runnable {
         log("create");
     }
 
+    private void setCallDuration(short duration) throws InterruptedException {
+        prefs.setSignalDuration(duration);
+        sendTask.outQueue.put("callDuration " + prefs.signalDuration);
+        sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
+        readTask.bufferDuration.set(prefs.readSignalDuration);
+
+    }
+
     private void sendControlSignal(String signal) throws InterruptedException {
         logv("send control " + signal);
 
         sendTask.outQueue.put("sleep " + prefs.controlDelay);
         sendTask.outQueue.put("callDuration " + prefs.controlDuration);
-        sendTask.outQueue.put("spaceDuration " + (int)(prefs.controlDuration * prefs.spaceMult));
+        sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
 
         sendTask.outQueue.put(signal);
 
         sendTask.outQueue.put("callDuration " + prefs.signalDuration);
-        sendTask.outQueue.put("spaceDuration " + (int)(prefs.signalDuration * prefs.spaceMult));
+        sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
         sendTask.outQueue.put("sleep " + prefs.controlAwait);
     }
 
@@ -120,7 +138,7 @@ public class TransportTask  implements Runnable {
 
     private void logv(String str) {
         Log.d("MY TRPV", str);
-        Intent intent = new Intent("transport_log");
+        Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPV");
         contex.sendBroadcast(intent);
@@ -132,6 +150,14 @@ public class TransportTask  implements Runnable {
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPT");
         contex.sendBroadcast(intent);
+    }
+    private void onStartSend() {
+        Intent intent = new Intent("csms_transport");
+        intent.putExtra("prefs.bytesPerPack", prefs.bytesPerPack);
+        intent.putExtra("prefs.signalDuration", prefs.signalDuration);
+        intent.putExtra("prefs.confirmWait", prefs.confirmWait);
+        contex.sendBroadcast(intent);
+
     }
 
     private void log(byte[] data) {
@@ -153,6 +179,8 @@ public class TransportTask  implements Runnable {
         try {
             readTask = new ReadTask(contex);
             sendTask = new SendTask(contex);
+
+            setCallDuration((short)315);
 
             readThread = new Thread(readTask);
             //readThread.setDaemon(true);
@@ -178,7 +206,7 @@ public class TransportTask  implements Runnable {
 
                     logv("take '" + ch + "'");
 
-                    if (pattern == RESTART_PATTERN) {
+                    if (pattern.equals(RESTART_PATTERN)) {
                         log("detect pattern " + pattern);
                         throw new Exception();
                     } else if (ch == AWAKE_SIGNAL) {
@@ -206,7 +234,7 @@ public class TransportTask  implements Runnable {
                             inMessage = "*";
                             log("in: " + inMessage);
                         }
-                    } else if (ch >= '0' && ch <= '8' || ch == 'D') {
+                    } else if (ch >= '0' && ch <= '8' || ch == 'D' || ch == 'C') {
                         if (state == State.READ) {
                             inMessage += ch;
                             log("in: " + inMessage);
@@ -244,6 +272,7 @@ public class TransportTask  implements Runnable {
                 }
 
                 if (state == State.READ && !outQueue.isEmpty()) {
+                    onStartSend();
                     OutRequest req = outQueue.element();
                     if (req.request != null) {
                         if (req.request == "reboot_remote") {
@@ -252,7 +281,7 @@ public class TransportTask  implements Runnable {
                                 Thread.sleep(100);
                             }
                             Thread.sleep(2000);
-                            sendTask.outQueue.put(RESTART_PATTERN);
+                            sendControlSignal(RESTART_PATTERN);
                             while(!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
                             }
@@ -260,10 +289,15 @@ public class TransportTask  implements Runnable {
                             readTask.inQueue.clear();
                             outQueue.take();
                             log("finish send " + req.request);
+                        } else if (req.request == "config_speed") {
+                            log("set call duration to  " + req.intParam);
+                            setCallDuration((short)req.intParam);
+                            outQueue.take();
                         }
                     } else if (req.data != null) {
                         outMessages = DtmfPacking.multipack(req.data, prefs.bytesPerPack);
-                        log("");
+                        log(" ");
+                        log(req.data);
                         log("pack bytes " + req.data.length + " :");
                         for (String msg : outMessages) {
                             log(msg);
@@ -277,11 +311,13 @@ public class TransportTask  implements Runnable {
                         logv("nothing to send");
                         resendCount = 0;
                         setState(State.READ);
+                        inQueue.put(new byte[]{ProcessorTask.SUCCESS_COMMAND});
                         if (!outQueue.isEmpty()) outQueue.take();
                     } else if (resendCount >= 6) {
                         log("too much resend");
                         resendCount = 0;
                         setState(State.READ);
+                        inQueue.put(new byte[]{ProcessorTask.FAIL_COMMAND});
                         if (!outQueue.isEmpty()) outQueue.take();
                     } else {
                         setState(State.SENDING);
@@ -289,8 +325,8 @@ public class TransportTask  implements Runnable {
                         Thread.sleep(prefs.controlDuration);
                         Thread.sleep(prefs.controlAwait);
                         String msg = outMessages[0];
-                        if (resendCount == 0) log("send " + msg);
-                        else log("resend ("+resendCount+") " + msg);
+                        if (resendCount == 0) log("play " + msg);
+                        else log("replay ("+resendCount+") " + msg);
                         sendTask.outQueue.put(msg);
                         waitForConfimColdown = 0;
                         resendCount++;

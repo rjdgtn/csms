@@ -33,8 +33,14 @@ public class ProcessorTask implements Runnable {
 
     private final String ENCODING = "US-ASCII";
 
-    private final byte SKIP_COMMAND = 000;
-    private final byte ECHO_COMMAND = 011;
+    private final byte NO_COMMAND = 000;
+    private final byte SKIP_COMMAND = 1;
+    private final byte ECHO_COMMAND = 11;
+    private final byte CONFIG_SPEED_COMMAND = 22;
+    public static final byte FAIL_COMMAND = 127;
+    public static final byte SUCCESS_COMMAND = 126;
+
+    Bundle lastLocalCommand = null;
 
     public ProcessorTask(Context contex) {
         this.contex = contex;
@@ -74,6 +80,9 @@ public class ProcessorTask implements Runnable {
         if (code.equals("reboot_remote")) onLocalRebootRemote(command);
         else if (code.equals("test")) onLocalTest(command);
         else if (code.equals("echo")) onLocalEcho(command);
+        else if (code.equals("config_speed")) onLocalConfigSpeed(command);
+
+        lastLocalCommand = command;
     }
 
     private void onRemoteCommand(byte[] data) throws InterruptedException, IOException {
@@ -81,6 +90,46 @@ public class ProcessorTask implements Runnable {
         if (inputStream.available() == 0) return;
         int code = inputStream.read();
         if (code == ECHO_COMMAND) onRemoteEcho(inputStream);
+        if (code == CONFIG_SPEED_COMMAND) onRemoteConfigSpeed(inputStream);
+        if (code == FAIL_COMMAND) onRemoteFail();
+        if (code == SUCCESS_COMMAND) onRemoteSuccess();
+    }
+
+    private void onLocalConfigSpeed(Bundle command) throws InterruptedException {
+        short duration = (short)Integer.parseInt(command.getString("value"));
+        log("local request change call duration to " + duration );
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(CONFIG_SPEED_COMMAND);
+        outputStream.write(duration >> 8);
+        outputStream.write((duration << 8) >> 8);
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+    }
+
+    private void onRemoteConfigSpeed(ByteArrayInputStream stream) throws InterruptedException, IOException {
+        if (stream.available() == 0) return;
+        //byte[] b = new byte[2];
+        int duration = stream.read();
+        duration = duration << 8;
+        duration += stream.read();
+
+        log("remote request change call duration to " + duration );
+        TransportTask.outQueue.put(new OutRequest("config_speed", duration));
+    }
+
+    private void onRemoteFail() throws InterruptedException {
+        log("FAIL");
+
+    }
+
+    private void onRemoteSuccess() throws InterruptedException {
+        log("SUCCESS");
+        if (lastLocalCommand != null) {
+            String code = lastLocalCommand.getString("code");
+            if (code.equals("config_speed")) {
+                int duration = Integer.parseInt(lastLocalCommand.getString("value"));
+                TransportTask.outQueue.put(new OutRequest("config_speed", duration));
+            }
+        }
     }
 
     private void onLocalRebootRemote(Bundle command) throws InterruptedException {
