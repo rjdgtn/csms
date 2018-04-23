@@ -128,6 +128,10 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         } else if (itemName.equals("logs")) {
             PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.workerStatus));
             popupMenu.inflate(R.menu.logs_menu);
+            for (int i = 0; i < popupMenu.getMenu().size(); i++) {
+                boolean enbld = logChannels.contains(popupMenu.getMenu().getItem(i).getTitle());
+                popupMenu.getMenu().getItem(i).setChecked(enbld);
+            }
             popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 @Override
                 public boolean onMenuItemClick(MenuItem item) {
