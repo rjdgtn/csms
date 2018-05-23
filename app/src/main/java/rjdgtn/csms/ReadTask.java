@@ -100,7 +100,7 @@ public class ReadTask implements Runnable {
                                 inQueue.put(new Character(prevSymbol));
                                 prevMeanSymbol = prevSymbol;
                             }
-                            dupCounter = 0;
+                            dupCounter = 1;
                             prevSymbol = symbol;
                         } else {
                             dupCounter++;

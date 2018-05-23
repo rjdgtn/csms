@@ -104,8 +104,11 @@ public class SendTask implements Runnable {
                                 break;
                             }
                         }
+                        int dur = 1000;
+                        byte[] pause = new byte[dur * 8];
+                        audio.write(pause, 0, pause.length);
                         log("finish ");
-                        Thread.sleep(1000);
+                        Thread.sleep(dur);
                     }
                 }
                 outQueue.take();

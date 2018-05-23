@@ -50,8 +50,8 @@ public class TransportTask  implements Runnable {
             controlDuration = (short)(dur * 3);
             controlAwait = (short)(dur * 1);
             readSignalDuration = (short)(dur * 0.2);
-            spaceDuration = (short)(dur * 0.1);
-            confirmWait = (short)(dur * 15);
+            spaceDuration = (short)(dur * 0.2);
+            confirmWait = (short)min(2000 + (short)(dur * 10), 32767);
         }
 
 //        TransportPrefs(int dur) {
