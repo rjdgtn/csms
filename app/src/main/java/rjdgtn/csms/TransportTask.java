@@ -35,7 +35,7 @@ public class TransportTask  implements Runnable {
             55};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 5;
+        public byte bytesPerPack = 8;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
@@ -169,10 +169,13 @@ public class TransportTask  implements Runnable {
     }
 
     public void run() {
-        String packed = DtmfPacking.pack(new byte[]{0,1,2,3,4,5,6,7,8,9});
-        byte[] unp = DtmfPacking.unpack(packed);
+        String packed = DtmfPacking.packWithCheck(new byte[]{0,1,2,3,4,5,6,7,8,9,10});
+        byte[] unp = DtmfPacking.unpackWithCheck(packed);
 
-        String [] s = DtmfPacking.multipack(new byte[]{0,1,2,3,4,5,6,7,8,9}, prefs.bytesPerPack);
+        String [] s = DtmfPacking.multipack(new byte[]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}, prefs.bytesPerPack);
+        byte[] pack1 = DtmfPacking.unpackWithCheck(s[1]);
+        byte[] pack2 = DtmfPacking.unpackWithCheck(s[2]);
+       // DtmfPacking.mergeBytesQueue(pack1, pack2);
 
         boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");
@@ -256,7 +259,7 @@ public class TransportTask  implements Runnable {
                                 msgBlocks.clear();
                                 sendControlSignal(SUCCESS_SIGNAL);
                             } else {
-                                byte[] data = DtmfPacking.unpack(inMessage);
+                                byte[] data = DtmfPacking.unpackWithCheck(inMessage);
                                 if (data != null) {
                                     msgBlocks.add(data);
                                     log("SUCCESS " + SUCCESS_SIGNAL);

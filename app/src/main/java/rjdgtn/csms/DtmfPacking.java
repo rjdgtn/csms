@@ -12,6 +12,9 @@ import static java.lang.Math.ceil;
 import static java.lang.Math.min;
 
 public class DtmfPacking {
+
+    public static native byte crc8(byte[] data, int len);
+
     private static char[] intToSymbol = {'0', '1', '2', '3', '4', '5', '6', '7', '8'};
     private static int symbolToInt(char ch) {
         switch (ch) {
@@ -28,18 +31,49 @@ public class DtmfPacking {
         }
     }
 
+    public static boolean isPot(int number) {
+       return  ((number & (number - 1)) == 0);
+    }
+
+    public static int nextPot(int number) {
+        int highestOneBit = Integer.highestOneBit(number);
+        return highestOneBit << 1;
+    }
+
     public static String[] multipack(byte[] data, int splitSize) {
-        int blockNum = (int)ceil(data.length / (float)splitSize);
+        assert(isPot(splitSize));
+        if (!isPot(splitSize)) return null;
+        splitSize--;
+
+        int blockNum = (int)ceil(data.length / (float)(splitSize));
         String[] res = new String[blockNum+2];
         for (int i = 0; i < blockNum; i ++) {
             byte[] block = Arrays.copyOfRange(data, i * splitSize, min(data.length, (i+1) * splitSize));
-            res[i+1] = pack(block);
+            assert(isPot(block.length+1) || i == blockNum-1);
+            res[i+1] = packWithCheck(block);
         }
 
         res[0] = "*C#";
         res[blockNum+1] = "*D#";
         return res;
+    }
 
+    public static String packWithCheck(byte[] data) {
+        int newSize = nextPot(data.length);
+        assert(newSize > data.length);
+
+        byte[] modData = Arrays.copyOf(data, newSize);
+        byte checksum = crc8(modData, modData.length-1);
+        modData[modData.length-1] = checksum;
+        return pack(modData);
+    }
+
+    public static byte[] unpackWithCheck(String msg)  {
+        byte[] data = unpack(msg);
+        if (!isPot(data.length)) return null;
+        byte checksum = crc8(data, data.length-1);
+        if (data[data.length-1] != checksum) return null;
+        return Arrays.copyOf(data, data.length-1);
     }
 
     public static String pack(byte[] data) {
@@ -47,7 +81,7 @@ public class DtmfPacking {
         //String origRes = new String();
         BitSet bitset = BitSet.valueOf(data);
 
-        int checksum = 0;
+        //int checksum = 0;
         int prevVal = 8;
         int symbolsNum = (int)ceil(data.length * 8 / 3.0);
         for (int i = 0; i < symbolsNum; i++) {
@@ -62,7 +96,7 @@ public class DtmfPacking {
             if (bitset.get(i*3+2))
                 val += 1;
 
-            checksum = checksum ^ val;
+            //checksum = checksum ^ val;
 
             //origRes += intToSymbol[val];
 
@@ -72,8 +106,8 @@ public class DtmfPacking {
             prevVal = val;
         }
 
-        if (checksum >= prevVal) checksum++;
-        res += intToSymbol[checksum];
+//        if (checksum >= prevVal) checksum++;
+//        res += intToSymbol[checksum];
         res += '#';
 
 //        Log.d("MY CSMS:", origRes);
@@ -82,19 +116,19 @@ public class DtmfPacking {
     }
 
     public static byte[] unpack(String msg) {
-        int overhead = 3;
+        int overhead = 2;
         if (msg.length() < 3 + overhead) return null;
         if (msg.charAt(0) != '*') return null;
         if (msg.charAt(msg.length()-1) != '#') return null;
 
-        int checkSum = symbolToInt(msg.charAt(msg.length()-2));
-        if (checkSum > symbolToInt(msg.charAt(msg.length()-3))) checkSum--;
+//        int checkSum = symbolToInt(msg.charAt(msg.length()-2));
+//        if (checkSum > symbolToInt(msg.charAt(msg.length()-3))) checkSum--;
         int meanBitsNum = ((msg.length() - overhead) * 3 / 8) * 8;
 
         BitSet res = new BitSet(meanBitsNum);
         int i = 0;
         int prevSym = 8;
-        for (int j = 1; j < msg.length()-2; j++) {
+        for (int j = 1; j < msg.length()-1; j++) {
             int sym = symbolToInt(msg.charAt(j));
             if (sym == prevSym) {
                 return null;
@@ -104,7 +138,7 @@ public class DtmfPacking {
             } else {
                 prevSym = sym;
             }
-            checkSum = checkSum ^ sym;
+            //checkSum = checkSum ^ sym;
             res.set(i++, (sym & 0b100) > 0);
             if (i >= meanBitsNum) break;
             res.set(i++, (sym & 0b010) > 0);
@@ -113,7 +147,7 @@ public class DtmfPacking {
             if (i >= meanBitsNum) break;
         }
 
-        if (checkSum != 0) return null;
+        //if (checkSum != 0) return null;
 
         return res.toByteArray();
     }

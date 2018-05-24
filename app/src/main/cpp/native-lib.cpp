@@ -7,6 +7,7 @@
 
 extern "C" {
 #include "dtmf.h"
+#include "CRCX.h"
 }
 
 int curFrameSize = 0;
@@ -125,6 +126,18 @@ extern "C" {
         env->ReleaseShortArrayElements(jdata, data, 0);
 
         return generator->getReadyFlag();
+    }
+
+    JNIEXPORT jbyte JNICALL Java_rjdgtn_csms_DtmfPacking_crc8(JNIEnv *env, jobject, jbyteArray jdata, jint len) {
+        // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
+
+        jbyte* data = env->GetByteArrayElements(jdata, 0);
+
+        jbyte checksum = Crc8((unsigned char*)data, len);
+
+        env->ReleaseByteArrayElements(jdata, data, 0);
+
+        return checksum;
     }
 
 }
