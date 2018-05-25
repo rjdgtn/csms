@@ -55,6 +55,11 @@ public class DtmfPacking {
 
         res[0] = "*C#";
         res[blockNum+1] = "*D#";
+
+//        char[] myNameChars = res[1].toCharArray();
+//        myNameChars[4] = '#';
+//        res[1] = String.valueOf(myNameChars);
+
         return res;
     }
 
@@ -70,6 +75,7 @@ public class DtmfPacking {
 
     public static byte[] unpackWithCheck(String msg)  {
         byte[] data = unpack(msg);
+        if (data == null) return null;
         if (!isPot(data.length)) return null;
         byte checksum = crc8(data, data.length-1);
         if (data[data.length-1] != checksum) return null;

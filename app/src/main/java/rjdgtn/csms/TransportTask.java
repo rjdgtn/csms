@@ -32,10 +32,12 @@ public class TransportTask  implements Runnable {
             130,
             100,
             75,
-            55};
+            55,
+            40,
+            30};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 8;
+        public byte bytesPerPack = 4;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
@@ -46,11 +48,11 @@ public class TransportTask  implements Runnable {
 
         void setSignalDuration(short dur) {
             signalDuration = dur;
-            controlDelay = (short)(dur * 1);
+            controlDelay = (short)(dur * 2);
             controlDuration = (short)(dur * 3);
             controlAwait = (short)(dur * 1);
             readSignalDuration = (short)(dur * 0.2);
-            spaceDuration = (short)(dur * 0.2);
+            spaceDuration = (short)min((short)20, (short)(dur * 0.2));
             confirmWait = (short)min(2000 + (short)(dur * 10), 32767);
         }
 
@@ -115,7 +117,16 @@ public class TransportTask  implements Runnable {
     private void sendControlSignal(String signal) throws InterruptedException {
         logv("send control " + signal);
 
-        sendTask.outQueue.put("sleep " + prefs.controlDelay);
+        long lastRead = System.currentTimeMillis();
+        do {
+            while (!readTask.inQueue.isEmpty()) {
+                readTask.inQueue.take();
+                lastRead = System.currentTimeMillis();
+            }
+            sleep(10);
+        } while (System.currentTimeMillis() - lastRead < prefs.controlDelay);
+
+        //sendTask.outQueue.put("sleep " + prefs.controlDelay);
         sendTask.outQueue.put("callDuration " + prefs.controlDuration);
         sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
 
@@ -252,11 +263,13 @@ public class TransportTask  implements Runnable {
                                 log(res);
                                 inQueue.put(res);
                                 msgBlocks.clear();
+                                log("SUCCESS " + SUCCESS_SIGNAL);
                                 sendControlSignal(SUCCESS_SIGNAL);
 
                             }else if (inMessage.equals("*C#")) {
                                 log("FLUSH");
                                 msgBlocks.clear();
+                                log("SUCCESS " + SUCCESS_SIGNAL);
                                 sendControlSignal(SUCCESS_SIGNAL);
                             } else {
                                 byte[] data = DtmfPacking.unpackWithCheck(inMessage);
