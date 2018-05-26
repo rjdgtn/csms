@@ -53,8 +53,8 @@ public class DtmfPacking {
             res[i+1] = packWithCheck(block);
         }
 
-        res[0] = "*C#";
-        res[blockNum+1] = "*D#";
+        res[0] = "#B*";
+        res[blockNum+1] = "#C*";
 
 //        char[] myNameChars = res[1].toCharArray();
 //        myNameChars[4] = '#';
@@ -83,7 +83,7 @@ public class DtmfPacking {
     }
 
     public static String pack(byte[] data) {
-        String res = new String("*");
+        String res = new String("#");
         //String origRes = new String();
         BitSet bitset = BitSet.valueOf(data);
 
@@ -114,7 +114,7 @@ public class DtmfPacking {
 
 //        if (checksum >= prevVal) checksum++;
 //        res += intToSymbol[checksum];
-        res += '#';
+        res += '*';
 
 //        Log.d("MY CSMS:", origRes);
 
@@ -124,8 +124,8 @@ public class DtmfPacking {
     public static byte[] unpack(String msg) {
         int overhead = 2;
         if (msg.length() < 3 + overhead) return null;
-        if (msg.charAt(0) != '*') return null;
-        if (msg.charAt(msg.length()-1) != '#') return null;
+        if (msg.charAt(0) != '#') return null;
+        if (msg.charAt(msg.length()-1) != '*') return null;
 
 //        int checkSum = symbolToInt(msg.charAt(msg.length()-2));
 //        if (checkSum > symbolToInt(msg.charAt(msg.length()-3))) checkSum--;

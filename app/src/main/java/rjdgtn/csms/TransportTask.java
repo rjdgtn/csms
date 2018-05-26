@@ -84,9 +84,9 @@ public class TransportTask  implements Runnable {
 
     //private char resetSignal = 'C';
     private char SUCCESS_SIGNAL = 'A';
-    private char FAIL_SIGNAL = 'B';
+    private char FAIL_SIGNAL = 'D';
     private char AWAKE_SIGNAL = '9';
-    public static String RESTART_PATTERN = "DCDCDC";
+    public static String RESTART_PATTERN = "BCBCBC";
 
 
     private ReadTask readTask = null;
@@ -247,21 +247,16 @@ public class TransportTask  implements Runnable {
                             // RESEND
                             setState(State.SEND);
                         }
-                    } else if (ch == '*') {
-                        if (state == State.READ) {
-                            inMessage = "*";
-                            log("in: " + inMessage);
-                        }
-                    } else if (ch >= '0' && ch <= '8' || ch == 'D' || ch == 'C') {
+                    } else if (ch >= '0' && ch <= '8' || ch == '#' || ch == 'D' || ch == 'C' || ch == 'B' || ch == 'A') {
                         if (state == State.READ) {
                             inMessage += ch;
                             log("in: " + inMessage);
                         }
-                    } else if (ch == '#') {
+                    } else if (ch == '*') {
                         if (state == State.READ) {
-                            inMessage += "#";
+                            inMessage += "*";
                             log("in: " + inMessage);
-                            if (inMessage.equals("*D#")) {
+                            if (inMessage.equals("#C*")) {
                                 log("FINISHED");
                                 log("SUCCESS " + SUCCESS_SIGNAL);
                                 sendControlSignal(SUCCESS_SIGNAL);
@@ -271,7 +266,7 @@ public class TransportTask  implements Runnable {
                                 msgBlocks.clear();
                                 sleep(1000);
 
-                            }else if (inMessage.equals("*C#")) {
+                            }else if (inMessage.equals("#B*")) {
                                 log("FLUSH");
                                 msgBlocks.clear();
                                 log("SUCCESS " + SUCCESS_SIGNAL);
