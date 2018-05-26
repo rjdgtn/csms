@@ -9,6 +9,7 @@ import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -91,19 +92,26 @@ public class SendTask implements Runnable {
                         spaceDuration.set(duration);
                         log("spaceDuration "+ duration);
                     } else {
-                        short[] buffer = new short[256];
+//                        String[] inSplit =in.split("(?<=\\G.{10})");
+//                        for (String str : inSplit) {
+                        for (int i = 0; i < in.length(); i += 10) {
+                            String str = in.substring(i, Math.min(i + 10, in.length()));
 
-                        encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
-                        encode(in);
-                        log("start " + in);
-                        while (true) {
-                            boolean finished = encodeStep(buffer);
-                            if (audio != null) audio.write(buffer, 0, buffer.length);
-                            Thread.sleep(buffer.length / (frequency / 1000));
-                            if (finished) {
-                                break;
+                            short[] buffer = new short[256];
+
+                            encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
+                            encode(str);
+                            log("start " + str);
+                            while (true) {
+                                boolean finished = encodeStep(buffer);
+                                if (audio != null) audio.write(buffer, 0, buffer.length);
+                                Thread.sleep(buffer.length / (frequency / 1000));
+                                if (finished) {
+                                    break;
+                                }
                             }
                         }
+
                         int dur = 1000;
                         byte[] pause = new byte[dur * 8];
                         audio.write(pause, 0, pause.length);

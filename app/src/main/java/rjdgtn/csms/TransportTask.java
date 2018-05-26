@@ -37,7 +37,7 @@ public class TransportTask  implements Runnable {
             30};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 4;
+        public byte bytesPerPack = 8;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
@@ -50,7 +50,7 @@ public class TransportTask  implements Runnable {
             signalDuration = dur;
             controlDelay = (short)(dur * 2);
             controlDuration = (short)(dur * 3);
-            controlAwait = (short)(dur * 1);
+            controlAwait = (short)(dur * 2);
             readSignalDuration = (short)(dur * 0.2);
             spaceDuration = (short)min((short)20, (short)(dur * 0.2));
             confirmWait = (short)min(2000 + (short)(dur * 10), 32767);
@@ -86,7 +86,7 @@ public class TransportTask  implements Runnable {
     private char SUCCESS_SIGNAL = 'A';
     private char FAIL_SIGNAL = 'B';
     private char AWAKE_SIGNAL = '9';
-    private String RESTART_PATTERN = "DCDCDC";
+    public static String RESTART_PATTERN = "DCDCDC";
 
 
     private ReadTask readTask = null;
@@ -114,9 +114,7 @@ public class TransportTask  implements Runnable {
 
     }
 
-    private void sendControlSignal(String signal) throws InterruptedException {
-        logv("send control " + signal);
-
+    private void waitForSilence(int ms)  throws InterruptedException {
         long lastRead = System.currentTimeMillis();
         do {
             while (!readTask.inQueue.isEmpty()) {
@@ -124,7 +122,13 @@ public class TransportTask  implements Runnable {
                 lastRead = System.currentTimeMillis();
             }
             sleep(10);
-        } while (System.currentTimeMillis() - lastRead < prefs.controlDelay);
+        } while (System.currentTimeMillis() - lastRead < ms);
+    }
+
+    private void sendControlSignal(String signal) throws InterruptedException {
+        logv("send control " + signal);
+
+        waitForSilence(prefs.controlDelay);
 
         //sendTask.outQueue.put("sleep " + prefs.controlDelay);
         sendTask.outQueue.put("callDuration " + prefs.controlDuration);
@@ -134,7 +138,12 @@ public class TransportTask  implements Runnable {
 
         sendTask.outQueue.put("callDuration " + prefs.signalDuration);
         sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
-        sendTask.outQueue.put("sleep " + prefs.controlAwait);
+
+        sleep(prefs.controlDuration);
+
+        waitForSilence(prefs.controlAwait);
+        //waitForSilence(prefs.controlAwait);
+        //sendTask.outQueue.put("sleep " + prefs.controlAwait);
     }
 
     private void sendControlSignal(char signal) throws InterruptedException  {
@@ -204,7 +213,6 @@ public class TransportTask  implements Runnable {
             //sendThread.setDaemon(true);
             sendThread.start();
 
-            String pattern = "XxXxXx";
             String inMessage = new String();
             String[] outMessages = null;
             long waitForConfimColdown = 0;
@@ -216,14 +224,10 @@ public class TransportTask  implements Runnable {
                 }
                 while (!readTask.inQueue.isEmpty()) {
                     Character ch = readTask.inQueue.take();
-                    pattern = pattern.substring(1) + ch;
 
                     logv("take '" + ch + "'");
 
-                    if (pattern.equals(RESTART_PATTERN)) {
-                        log("detect pattern " + pattern);
-                        throw new Exception();
-                    } else if (ch == AWAKE_SIGNAL) {
+                    if (ch == AWAKE_SIGNAL) {
                         if (state == State.IDLE) {
                             log("awake");
                             sendControlSignal(SUCCESS_SIGNAL);
@@ -259,12 +263,13 @@ public class TransportTask  implements Runnable {
                             log("in: " + inMessage);
                             if (inMessage.equals("*D#")) {
                                 log("FINISHED");
+                                log("SUCCESS " + SUCCESS_SIGNAL);
+                                sendControlSignal(SUCCESS_SIGNAL);
                                 byte[] res = DtmfPacking.mergeBytesQueue(msgBlocks);
                                 log(res);
                                 inQueue.put(res);
                                 msgBlocks.clear();
-                                log("SUCCESS " + SUCCESS_SIGNAL);
-                                sendControlSignal(SUCCESS_SIGNAL);
+                                sleep(1000);
 
                             }else if (inMessage.equals("*C#")) {
                                 log("FLUSH");
@@ -338,8 +343,7 @@ public class TransportTask  implements Runnable {
                     } else {
                         setState(State.SENDING);
                         logv("sleep before send " + (prefs.controlDuration + prefs.controlAwait));
-                        Thread.sleep(prefs.controlDuration);
-                        Thread.sleep(prefs.controlAwait);
+                        waitForSilence(prefs.controlDuration + prefs.controlAwait);
                         String msg = outMessages[0];
                         if (resendCount == 0) log("play " + msg);
                         else log("replay ("+resendCount+") " + msg);

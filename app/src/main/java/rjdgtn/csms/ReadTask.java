@@ -57,7 +57,7 @@ public class ReadTask implements Runnable {
 
             int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
             int bufferShorts = bufferBytes / 2;
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes * 100);
+            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes * 5);
 
             short[] buffer = new short[bufferShorts * 2];
             audioRecord.startRecording();
@@ -65,6 +65,7 @@ public class ReadTask implements Runnable {
             int dupCounter = 0;
             int wpos = 0;
             short[] decodeBuffer = null;
+            String pattern = "XxXxXx";
 
             log("loop");
             while (true) {
@@ -99,6 +100,12 @@ public class ReadTask implements Runnable {
                                 log("put " + prevSymbol + " dup " + dupCounter);
                                 inQueue.put(new Character(prevSymbol));
                                 prevMeanSymbol = prevSymbol;
+
+                                pattern = pattern.substring(1) + prevSymbol;
+                                if (pattern.equals(TransportTask.RESTART_PATTERN)) {
+                                    log("detect pattern " + pattern);
+                                    throw new Exception();
+                                }
                             }
                             dupCounter = 1;
                             prevSymbol = symbol;
