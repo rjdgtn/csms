@@ -19,10 +19,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SendTask implements Runnable {
     public LinkedBlockingQueue<String> outQueue;
-    Context contex;
+    Context context = null;
 
-    public SendTask(Context contex) {
-        this.contex = contex;
+    public SendTask(Context context) {
+        this.context = context;
         outQueue = new LinkedBlockingQueue<String>();
 
         Log.d("MY SEND", "create");
@@ -45,7 +45,7 @@ public class SendTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "SEND");
-        contex.sendBroadcast(intent);
+        context.sendBroadcast(intent);
     }
 
     public void run() {
@@ -104,8 +104,10 @@ public class SendTask implements Runnable {
                             log("start " + str);
                             while (true) {
                                 boolean finished = encodeStep(buffer);
+                                int duration = buffer.length / (frequency / 1000);
+                                new VolumeCheckerTask(context, (int)(duration * 1.2));
                                 if (audio != null) audio.write(buffer, 0, buffer.length);
-                                Thread.sleep(buffer.length / (frequency / 1000));
+                                Thread.sleep(duration);
                                 if (finished) {
                                     break;
                                 }
@@ -140,5 +142,37 @@ public class SendTask implements Runnable {
 //        } finally {
 //            WorkerService.breakExec.set(true);
 //        }
+    }
+
+    public class VolumeCheckerTask implements Runnable {
+        public int targetVolume = 0;
+        AudioManager am = null;
+        long workUntil = 0;
+        VolumeCheckerTask(Context context, long duration) {
+            am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            targetVolume = (int)(am.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * 0.7);
+
+            workUntil = System.currentTimeMillis() + duration;
+
+            checkVolume();
+        }
+
+        public void run() {
+            checkVolume();
+            while (System.currentTimeMillis() <= workUntil) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                checkVolume();
+            }
+        }
+
+        void checkVolume() {
+            if (targetVolume != am.getStreamVolume(AudioManager.STREAM_MUSIC)) {
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume ,0);
+            }
+        }
     }
 }
