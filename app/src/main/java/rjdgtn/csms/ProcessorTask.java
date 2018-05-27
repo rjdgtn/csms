@@ -40,6 +40,8 @@ public class ProcessorTask implements Runnable {
     public static final byte FAIL_COMMAND = 127;
     public static final byte SUCCESS_COMMAND = 126;
 
+    public static final long launchTime = System.currentTimeMillis();
+
     Bundle lastLocalCommand = null;
 
     public ProcessorTask(Context contex) {

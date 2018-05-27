@@ -19,6 +19,8 @@ import java.io.StringWriter;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -68,6 +70,8 @@ public class WorkerService extends Service {
     private Thread transportThread = null;
     private Thread processorThread = null;
 
+    private Timer timer = null;
+
     public WorkerService() {
 
     }
@@ -76,6 +80,8 @@ public class WorkerService extends Service {
     public void onCreate() {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
 
+        timer = new Timer();
+        timer.schedule(new WorkerService.ShutdownTask(getApplicationContext()), 4*3600*1000);
 
         log("create");
         super.onCreate();
@@ -136,6 +142,20 @@ public class WorkerService extends Service {
             Log.e("CRASH", throwable.getMessage());
             Log.e("CRASH", errors.toString());
             System.exit(0);
+        }
+    }
+
+    class ShutdownTask extends TimerTask {
+        Context context;
+        ShutdownTask(Context c) {
+            context = c;
+        }
+
+        @Override
+        public void run() {
+            stop(context);
+//            log("timeout shutdown");
+//            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
         }
     }
 

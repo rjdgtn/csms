@@ -17,7 +17,7 @@ import java.util.TimerTask;
 import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class LauncherService extends Service {
-    private Timer timer;
+    private Timer timer = null;
 
     public static boolean isRunning(Context context) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
