@@ -128,12 +128,24 @@ extern "C" {
         return generator->getReadyFlag();
     }
 
-    JNIEXPORT jbyte JNICALL Java_rjdgtn_csms_DtmfPacking_crc8(JNIEnv *env, jobject, jbyteArray jdata, jint len) {
+    JNIEXPORT jbyte JNICALL Java_rjdgtn_csms_DtmfPacking_crc80x31(JNIEnv *env, jobject, jbyteArray jdata, jint len) {
         // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
 
         jbyte* data = env->GetByteArrayElements(jdata, 0);
 
-        jbyte checksum = Crc8((unsigned char*)data, len);
+        jbyte checksum = Crc8((unsigned char*)data, len, Crc8Table_0x31);
+
+        env->ReleaseByteArrayElements(jdata, data, 0);
+
+        return checksum;
+    }
+
+    JNIEXPORT jbyte JNICALL Java_rjdgtn_csms_DtmfPacking_crc80x9B(JNIEnv *env, jobject, jbyteArray jdata, jint len) {
+        // std::cerr << "Java_rjdgtn_csms_TransportTask_decode\n";
+
+        jbyte* data = env->GetByteArrayElements(jdata, 0);
+
+        jbyte checksum = Crc8((unsigned char*)data, len, Crc8Table_0x9B);
 
         env->ReleaseByteArrayElements(jdata, data, 0);
 

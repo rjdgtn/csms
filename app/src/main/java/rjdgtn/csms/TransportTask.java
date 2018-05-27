@@ -37,7 +37,7 @@ public class TransportTask  implements Runnable {
             30};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 16;
+        public byte bytesPerPack = 8;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
@@ -190,13 +190,19 @@ public class TransportTask  implements Runnable {
     }
 
     public void run() {
-        String packed = DtmfPacking.packWithCheck(new byte[]{0,1,2,3,4,5,6,7,8,9,10});
-        byte[] unp = DtmfPacking.unpackWithCheck(packed);
-
-        String [] s = DtmfPacking.multipack(new byte[]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}, prefs.bytesPerPack);
-        byte[] pack1 = DtmfPacking.unpackWithCheck(s[1]);
-        byte[] pack2 = DtmfPacking.unpackWithCheck(s[2]);
+//        String packed = DtmfPacking.packWithCheck(new byte[]{1, 0,1,2,3,4,5,6,7,8,9});
+//        byte[] unp = DtmfPacking.unpackWithCheck(packed);
+//
+//        String [] s = DtmfPacking.multipack(new byte[]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14}, prefs.bytesPerPack);
+//
+//        byte[] pack1 = DtmfPacking.unpackWithCheck(s[1]);
+//        byte[] pack2 = DtmfPacking.unpackWithCheck(s[2]);
        // DtmfPacking.mergeBytesQueue(pack1, pack2);
+
+        Queue<byte[]> q = new LinkedList<byte[]>();
+        q.add(new byte[]{1,0,1,2,  3,4,5});
+        q.add(new byte[]{6,7,8,9,-34,0,0});
+        byte[] d = DtmfPacking.multiunpack(q);
 
         boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");
@@ -258,14 +264,19 @@ public class TransportTask  implements Runnable {
                             inMessage += "*";
                             log("in: " + inMessage);
                             if (inMessage.equals("#C*")) {
-                                log("FINISHED");
-                                log("SUCCESS " + SUCCESS_SIGNAL);
-                                sendControlSignal(SUCCESS_SIGNAL);
-                                byte[] res = DtmfPacking.mergeBytesQueue(msgBlocks);
-                                log(res);
-                                inQueue.put(res);
-                                msgBlocks.clear();
-                                sleep(1000);
+                                byte[] res = DtmfPacking.multiunpack(msgBlocks);
+                                if (res != null) {
+                                    log("FINISHED");
+                                    log("SUCCESS " + SUCCESS_SIGNAL);
+                                    sendControlSignal(SUCCESS_SIGNAL);
+                                    log(res);
+                                    inQueue.put(res);
+                                    msgBlocks.clear();
+                                    sleep(1000);
+                                } else {
+                                    log("FAIL FINISH " + FAIL_SIGNAL);
+                                    sendControlSignal(FAIL_SIGNAL);
+                                }
 
                             }else if (inMessage.equals("#B*")) {
                                 log("FLUSH");

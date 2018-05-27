@@ -13,7 +13,8 @@ import static java.lang.Math.min;
 
 public class DtmfPacking {
 
-    public static native byte crc8(byte[] data, int len);
+    public static native byte crc80x31(byte[] data, int len);
+    public static native byte crc80x9B(byte[] data, int len);
 
     private static char[] intToSymbol = {'0', '1', '2', '3', '4', '5', '6', '7', '8'};
     private static int symbolToInt(char ch) {
@@ -45,6 +46,11 @@ public class DtmfPacking {
         if (!isPot(splitSize)) return null;
         splitSize--;
 
+        byte checksum = crc80x9B(data, data.length);
+        data = Arrays.copyOf(data, data.length+1);
+        data[data.length-1] = checksum;
+
+
         int blockNum = (int)ceil(data.length / (float)(splitSize));
         String[] res = new String[blockNum+2];
         for (int i = 0; i < blockNum; i ++) {
@@ -63,12 +69,27 @@ public class DtmfPacking {
         return res;
     }
 
+    public static byte[] multiunpack(Queue<byte[]> q) {
+        byte[] data = mergeBytesQueue(q);
+        while(data.length-1 >= 2 && data[data.length - 1] == 0) {
+            data = Arrays.copyOf(data, data.length - 1);
+        }
+
+        if (data.length >= 2) {
+            byte checksum = crc80x9B(data, data.length - 1);
+            if (data[data.length - 1] == checksum) {
+                return Arrays.copyOf(data, data.length - 1);
+            }
+        }
+        return null;
+    }
+
     public static String packWithCheck(byte[] data) {
         int newSize = nextPot(data.length);
         assert(newSize > data.length);
 
         byte[] modData = Arrays.copyOf(data, newSize);
-        byte checksum = crc8(modData, modData.length-1);
+        byte checksum = crc80x31(modData, modData.length-1);
         modData[modData.length-1] = checksum;
         return pack(modData);
     }
@@ -77,7 +98,7 @@ public class DtmfPacking {
         byte[] data = unpack(msg);
         if (data == null) return null;
         if (!isPot(data.length)) return null;
-        byte checksum = crc8(data, data.length-1);
+        byte checksum = crc80x31(data, data.length-1);
         if (data[data.length-1] != checksum) return null;
         return Arrays.copyOf(data, data.length-1);
     }
@@ -157,6 +178,7 @@ public class DtmfPacking {
 
         return res.toByteArray();
     }
+
 
     public static byte[] mergeBytesQueue(Queue<byte[]> q) {
         int sz = 0;
