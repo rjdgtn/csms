@@ -37,7 +37,7 @@ public class TransportTask  implements Runnable {
             30};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 8;
+        public byte bytesPerPack = 16;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
@@ -126,6 +126,7 @@ public class TransportTask  implements Runnable {
     }
 
     private void sendControlSignal(String signal) throws InterruptedException {
+        if (signal.length() == 1) signal = signal + "9";
         logv("send control " + signal);
 
         waitForSilence(prefs.controlDelay);
