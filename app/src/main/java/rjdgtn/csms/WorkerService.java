@@ -65,8 +65,10 @@ public class WorkerService extends Service {
 
     public static AtomicBoolean breakExec;
 
+    private CheckerTask checkerTask = null;
     private TransportTask transportTask = null;
     private ProcessorTask processorTask = null;
+    private Thread checkerThread = null;
     private Thread transportThread = null;
     private Thread processorThread = null;
 
@@ -95,8 +97,12 @@ public class WorkerService extends Service {
         Notification notification = builder.getNotification();
         startForeground(999, notification);
 
+        checkerTask = new CheckerTask(getApplicationContext());
         transportTask = new TransportTask(getApplicationContext());
         processorTask = new ProcessorTask(getApplicationContext());
+
+        checkerThread = new Thread(checkerTask);
+        checkerThread.start();
 
         transportThread = new Thread(transportTask);
         transportThread.start();
@@ -107,7 +113,7 @@ public class WorkerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent.getExtras() != null) {
+        if (intent != null && intent.getExtras() != null) {
             try {
                 ProcessorTask.localCommands.put(intent.getExtras());
             } catch (Exception e) {

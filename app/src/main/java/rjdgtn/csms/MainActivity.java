@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
@@ -185,6 +186,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     public void onUpdate() {
         ((CheckBox)findViewById(R.id.checkbox1)).setChecked(WorkerService.isRunning(getApplicationContext()));
+        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        ((CheckBox)findViewById(R.id.checkbox2)).setChecked(audioManager.isWiredHeadsetOn());
     }
 
     @Override

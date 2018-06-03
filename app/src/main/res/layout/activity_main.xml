@@ -28,16 +28,6 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/workerStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:maxLines="1000"
-                android:scrollbars="vertical"
-                android:text="Worker status"
-                android:textAppearance="@style/TextAppearance.AppCompat.Large" />
-
             <CheckBox
                 android:id="@+id/checkbox1"
                 android:layout_width="wrap_content"
@@ -46,6 +36,36 @@
                 android:checked="false"
                 android:clickable="false"
                 android:focusable="false" />
+
+            <TextView
+                android:id="@+id/workerStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1000"
+                android:scrollbars="vertical"
+                android:text="Worker status"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+
+            <CheckBox
+                android:id="@+id/checkbox2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:checked="false"
+                android:clickable="false"
+                android:focusable="false" />
+
+            <TextView
+                android:id="@+id/headsetStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1000"
+                android:scrollbars="vertical"
+                android:text="Headset status"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+
         </LinearLayout>
 
         <TextView
