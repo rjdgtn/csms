@@ -40,6 +40,9 @@ public class ProcessorTask implements Runnable {
     private final byte CONFIG_SPEED_COMMAND = 22;
     private final byte STATUS_REQUEST_COMMAND = 33;
     private final byte STATUS_ANSWER_COMMAND = 44;
+//    private final byte STATUS_ANSWER_COMMAND = 44;
+
+
     public static final byte FAIL_COMMAND = 127;
     public static final byte SUCCESS_COMMAND = 126;
 
@@ -108,11 +111,11 @@ public class ProcessorTask implements Runnable {
     }
 
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(STATUS_REQUEST_COMMAND);
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+//        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//        outputStream.write(STATUS_REQUEST_COMMAND);
+//        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
 
-        //onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
+        onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
     }
 
     private void onRemoteStatusRequest(ByteArrayInputStream stream) throws IOException, InterruptedException {
@@ -131,7 +134,7 @@ public class ProcessorTask implements Runnable {
         log("\tStatus:");
         log("\tuptime: " + status.uptime / 2 + " hours");
         log("\tpower: " + status.power);
-        log("\tgsm: " + status.gsm );
+        log("\tgsm: " + status.gsm + " " + status.getGsmLevelStrign());
         log("\tgps: " + status.location);
         log("\twifi: " + status.wifi);
         log("\tbluetooth: " + status.bluetooth);
@@ -210,29 +213,7 @@ public class ProcessorTask implements Runnable {
             TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
         }
     }
-//    abstract class CommandProcessor {
-//
-//        abstract boolean isFinished();
-//
-//        void initResponder(byte[] data) {
-//
-//        }
-//        void initRequester(Bundle data) {
-//
-//        }
-//        void onRequestSend() {
-//
-//        }
-//        boolean onAnswer(byte[] data) {
-//            return true;
-//        }
-//
-//
-////        public void on(String str) {
-////
-////        }
-//    }
-    //private
+
 
 
 }

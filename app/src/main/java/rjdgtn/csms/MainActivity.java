@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
@@ -93,6 +94,12 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         };
         Timer scheduler = new Timer();
         scheduler.schedule(schedulerTask, 0, 1000);
+
+
+        HeadsetPlugReceiver headsetPlugReceiver = new HeadsetPlugReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("android.intent.action.HEADSET_PLUG");
+        registerReceiver(headsetPlugReceiver, intentFilter);
     }
 
     @Override
@@ -188,11 +195,21 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             rjdgtn.csms.LauncherService.stop(getApplicationContext());
         }
     }
+//    private boolean isHeadphonesPlugged(){
+//        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+//        AudioDeviceInfo[] audioDevices = audioManager.getDevices(AudioManager.GET_DEVICES_ALL);
+//        for(AudioDeviceInfo deviceInfo : audioDevices){
+//            if(deviceInfo.getType()==AudioDeviceInfo.TYPE_WIRED_HEADSET){
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 
     public void onUpdate() {
         ((CheckBox)findViewById(R.id.checkbox1)).setChecked(WorkerService.isRunning(getApplicationContext()));
-        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        ((CheckBox)findViewById(R.id.checkbox2)).setChecked(audioManager.isWiredHeadsetOn());
+        //AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        ((CheckBox)findViewById(R.id.checkbox2)).setChecked(connectedMicrophone);//audioManager.isWiredHeadsetOn());
     }
 
     @Override
@@ -275,6 +292,20 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         });
 
         builder.show();
+    }
+
+    static boolean connectedMicrophone = false;
+    public class HeadsetPlugReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (!intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
+                return;
+            }
+
+            boolean connectedHeadphones = (intent.getIntExtra("state", 0) == 1);
+            connectedMicrophone = (intent.getIntExtra("microphone", 0) == 1) && connectedHeadphones;
+
+        }
     }
 }
 

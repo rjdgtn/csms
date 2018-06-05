@@ -75,6 +75,17 @@ public class Status implements Serializable {
 
     }
 
+    String getGsmLevelStrign() {
+        String gsmLevel = "";
+        int asu = gsm;
+        if (asu <= 2 || asu == 99) gsmLevel = "none/unknown";
+        else if (asu >= 12) gsmLevel = "great";
+        else if (asu >= 8)  gsmLevel = "good";
+        else if (asu >= 5)  gsmLevel = "moderate";
+        else gsmLevel = "poor";
+        return gsmLevel;
+    }
+
     byte uptime = 0; //halfhours
     byte power = 0;
     byte gsm = 0;
