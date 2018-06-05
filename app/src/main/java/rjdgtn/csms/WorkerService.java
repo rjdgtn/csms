@@ -63,6 +63,8 @@ public class WorkerService extends Service {
         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
     }
 
+    public static final long launchTime = System.currentTimeMillis();
+
     public static AtomicBoolean breakExec;
 
     private CheckerTask checkerTask = null;
@@ -109,6 +111,8 @@ public class WorkerService extends Service {
 
         processorThread = new Thread(processorTask);
         processorThread.start();
+
+        MyPhoneStateListener.init(getApplicationContext());
     }
 
     @Override

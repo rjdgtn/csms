@@ -172,6 +172,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
+        } else if (itemName.equals("status")) {
+            WorkerService.send(getApplicationContext()
+                    , new HashMap<String, String>() {{
+                        put("code", "status");
+                    }});
         }
         return true;
     }

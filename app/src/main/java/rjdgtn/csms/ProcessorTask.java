@@ -14,6 +14,7 @@ import android.util.Log;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -37,10 +38,11 @@ public class ProcessorTask implements Runnable {
     private final byte SKIP_COMMAND = 1;
     private final byte ECHO_COMMAND = 11;
     private final byte CONFIG_SPEED_COMMAND = 22;
+    private final byte STATUS_REQUEST_COMMAND = 33;
+    private final byte STATUS_ANSWER_COMMAND = 44;
     public static final byte FAIL_COMMAND = 127;
     public static final byte SUCCESS_COMMAND = 126;
 
-    public static final long launchTime = System.currentTimeMillis();
 
     Bundle lastLocalCommand = null;
 
@@ -59,6 +61,11 @@ public class ProcessorTask implements Runnable {
 
     @Override
     public void run() {
+
+        Status status = Status.make(contex);
+        byte[] b = status.toBytes();
+
+
         log("start");
         try {
             while (true) {
@@ -83,6 +90,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("test")) onLocalTest(command);
         else if (code.equals("echo")) onLocalEcho(command);
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
+        else if (code.equals("status")) onLocalStatus(command);
 
         lastLocalCommand = command;
     }
@@ -95,6 +103,38 @@ public class ProcessorTask implements Runnable {
         if (code == CONFIG_SPEED_COMMAND) onRemoteConfigSpeed(inputStream);
         if (code == FAIL_COMMAND) onRemoteFail();
         if (code == SUCCESS_COMMAND) onRemoteSuccess();
+        if (code == STATUS_REQUEST_COMMAND) onRemoteStatusRequest(inputStream);
+        if (code == STATUS_ANSWER_COMMAND) onRemoteStatusAnswer(inputStream);
+    }
+
+    private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(STATUS_REQUEST_COMMAND);
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+
+        //onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
+    }
+
+    private void onRemoteStatusRequest(ByteArrayInputStream stream) throws IOException, InterruptedException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(STATUS_ANSWER_COMMAND);
+        outputStream.write(Status.make(contex).toBytes()) ;
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+    }
+
+    private void onRemoteStatusAnswer(ByteArrayInputStream stream) throws IOException {
+        byte[] buf = new byte[stream.available()];
+        stream.read(buf);
+        ByteBuffer bbuf =  ByteBuffer.wrap(buf, 0, buf.length);
+        Status status = new Status(bbuf);
+
+        log("\tStatus:");
+        log("\tuptime: " + status.uptime / 2 + " hours");
+        log("\tpower: " + status.power);
+        log("\tgsm: " + status.gsm );
+        log("\tgps: " + status.location);
+        log("\twifi: " + status.wifi);
+        log("\tbluetooth: " + status.bluetooth);
     }
 
     private void onLocalConfigSpeed(Bundle command) throws InterruptedException {
@@ -119,12 +159,12 @@ public class ProcessorTask implements Runnable {
     }
 
     private void onRemoteFail() throws InterruptedException {
-        log("FAIL");
+        log("CMD FAIL");
 
     }
 
     private void onRemoteSuccess() throws InterruptedException {
-        log("SUCCESS");
+        log("CMD SUCCESS");
         if (lastLocalCommand != null) {
             String code = lastLocalCommand.getString("code");
             if (code.equals("config_speed")) {
@@ -137,12 +177,14 @@ public class ProcessorTask implements Runnable {
     private void onLocalRebootRemote(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("reboot_remote"));
     }
+
     private void onLocalTest(Bundle command) throws InterruptedException, IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(SKIP_COMMAND);
         outputStream.write(new byte[] {0,1,2,3,4,5,6,7,8,9});
         TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
     }
+
     private void onLocalEcho(Bundle command) throws InterruptedException, IOException {
         String msg = command.getString("msg");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
