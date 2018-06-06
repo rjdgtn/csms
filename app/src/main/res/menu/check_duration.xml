@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <item android:title="1" />
+    <item android:title="5" />
+    <item android:title="10" />
+    <item android:title="30" />
+    <item android:title="60" />
+</menu>

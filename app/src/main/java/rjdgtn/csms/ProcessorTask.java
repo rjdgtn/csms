@@ -19,6 +19,7 @@ import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static java.lang.Thread.getAllStackTraces;
 import static java.lang.Thread.sleep;
 
 /**
@@ -40,12 +41,16 @@ public class ProcessorTask implements Runnable {
     private final byte CONFIG_SPEED_COMMAND = 22;
     private final byte STATUS_REQUEST_COMMAND = 33;
     private final byte STATUS_ANSWER_COMMAND = 44;
-//    private final byte STATUS_ANSWER_COMMAND = 44;
+    private final byte CHECK_SMS_REQUEST_COMMAND = 55;
+    //private final byte CHECK_SMS_ANSWER_COMMAND = 66;
+    private final byte GET_SMS_REQUEST_COMMAND = 77;
+    private final byte GET_SMS_ANSWER_COMMAND = 88;
 
 
     public static final byte FAIL_COMMAND = 127;
     public static final byte SUCCESS_COMMAND = 126;
 
+    private long enableAirplaneModeTime = 0;
 
     Bundle lastLocalCommand = null;
 
@@ -77,6 +82,10 @@ public class ProcessorTask implements Runnable {
                 } else if (!localCommands.isEmpty()) {
                     onLocalCommand(localCommands.take());
                 }
+                if (enableAirplaneModeTime > 0 && enableAirplaneModeTime < System.currentTimeMillis()) {
+                    enableAirplaneModeTime = 0;
+                    AirplaneMode.setFlightMode(contex, true);
+                }
                 Thread.sleep(100);
             }
         } catch (Exception e) {
@@ -94,6 +103,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("echo")) onLocalEcho(command);
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
         else if (code.equals("status")) onLocalStatus(command);
+        else if (code.equals("check_sms")) onLocalCheckSms(command);
 
         lastLocalCommand = command;
     }
@@ -108,14 +118,30 @@ public class ProcessorTask implements Runnable {
         if (code == SUCCESS_COMMAND) onRemoteSuccess();
         if (code == STATUS_REQUEST_COMMAND) onRemoteStatusRequest(inputStream);
         if (code == STATUS_ANSWER_COMMAND) onRemoteStatusAnswer(inputStream);
+        if (code == CHECK_SMS_REQUEST_COMMAND) onRemoteCheckSms(inputStream);
+    }
+
+    private void onLocalCheckSms(Bundle command) throws InterruptedException {
+        byte duration = (byte)Integer.parseInt(command.getString("duration"));
+        log("local request check sms in " + duration + " minutes");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(CHECK_SMS_REQUEST_COMMAND);
+        outputStream.write(duration);
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+    }
+
+    private void onRemoteCheckSms(ByteArrayInputStream stream) throws IOException, InterruptedException {
+        byte duration = (byte) stream.read();
+        AirplaneMode.setFlightMode(contex, false);
+        enableAirplaneModeTime = System.currentTimeMillis() + duration * 60 * 1000;
     }
 
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
-//        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//        outputStream.write(STATUS_REQUEST_COMMAND);
-//        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(STATUS_REQUEST_COMMAND);
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
 
-        onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
+//        onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
     }
 
     private void onRemoteStatusRequest(ByteArrayInputStream stream) throws IOException, InterruptedException {

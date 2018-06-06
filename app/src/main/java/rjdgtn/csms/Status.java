@@ -35,6 +35,8 @@ public class Status implements Serializable {
             status.gsm = MyPhoneStateListener.signalStrength;
         }
 
+        status.airplane = AirplaneMode.isFlightModeEnabled(context);
+
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = context.registerReceiver(null, iFilter);
 
@@ -62,6 +64,7 @@ public class Status implements Serializable {
         wifi = (v & 0b1) > 0;
         bluetooth = (v & 0b10) > 0;
         location = (v & 0b100) > 0;
+        airplane = (v & 0b1000) > 0;
     }
 
     byte[] toBytes() {
@@ -69,7 +72,7 @@ public class Status implements Serializable {
         buffer.put(uptime);
         buffer.put(power);
         buffer.put(gsm);
-        buffer.put((byte)(0 | (wifi ? 0b1 : 0b0) | (bluetooth ? 0b10 : 0b00) | (location ? 0b100 : 0b000)));
+        buffer.put((byte)(0 | (wifi ? 0b1 : 0b0) | (bluetooth ? 0b10 : 0b00) | (location ? 0b100 : 0b000) | (airplane ? 0b1000 : 0b0000)));
 
         return buffer.array();
 
@@ -92,4 +95,5 @@ public class Status implements Serializable {
     boolean wifi = false;
     boolean bluetooth = false;
     boolean location = false;
+    boolean airplane = false;
 }

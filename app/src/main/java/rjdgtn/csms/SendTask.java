@@ -97,7 +97,7 @@ public class SendTask implements Runnable {
                         for (int i = 0; i < in.length(); i += 10) {
                             String str = in.substring(i, Math.min(i + 10, in.length()));
 
-                            short[] buffer = new short[256];
+                            short[] buffer = new short[255];
 
                             encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
                             encode(str);

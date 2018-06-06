@@ -184,6 +184,22 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                     , new HashMap<String, String>() {{
                         put("code", "status");
                     }});
+        } else if (itemName.equals("check_sms")) {
+            PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
+            popupMenu.inflate(R.menu.check_duration);
+            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(final MenuItem item) {
+                    WorkerService.send(getApplicationContext()
+                            , new HashMap<String, String>() {{
+                                put("code", "check_sms");
+                                put("duration", item.getTitle().toString());
+                            }});
+                    return true;
+                }
+            });
+
+            popupMenu.show();
         }
         return true;
     }
