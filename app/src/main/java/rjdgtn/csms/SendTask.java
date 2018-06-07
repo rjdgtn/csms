@@ -11,6 +11,7 @@ import android.util.Log;
 
 import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -31,6 +32,7 @@ public class SendTask implements Runnable {
 
     public static AtomicInteger callDuration = new AtomicInteger(60);
     public static AtomicInteger spaceDuration = new AtomicInteger(50);
+    public static AtomicBoolean idleMode = new AtomicBoolean(false);
 
     public native void encodeInit(int frameSize, int callDur, int spaceDur);
     public native void encode(String str);
@@ -74,7 +76,7 @@ public class SendTask implements Runnable {
             log("loop");
             while (true) {
                 if (outQueue.isEmpty()) {
-                    Thread.sleep(100);
+                    Thread.sleep(idleMode.get() ? 100 : 2500);
                     continue;
                 }
                 String in = outQueue.element();
@@ -97,7 +99,7 @@ public class SendTask implements Runnable {
                         for (int i = 0; i < in.length(); i += 10) {
                             String str = in.substring(i, Math.min(i + 10, in.length()));
 
-                            short[] buffer = new short[255];
+                            short[] buffer = new short[25];
 
                             encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
                             encode(str);

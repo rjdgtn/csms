@@ -6,6 +6,7 @@ import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.SyncFailedException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -224,11 +225,18 @@ public class TransportTask  implements Runnable {
             String[] outMessages = null;
             long waitForConfimColdown = 0;
             long resendCount = 0;
+            long lastEventTime = System.currentTimeMillis();;
 
             while (true) {
                 if (state == State.READ) {
                     Thread.sleep(100);
+                } else if (state == State.IDLE) {
+                    Thread.sleep(2000);
                 }
+                if (!readTask.inQueue.isEmpty() || sendTask.outQueue.isEmpty() || outQueue.isEmpty()) {
+                    lastEventTime = System.currentTimeMillis();
+                }
+
                 while (!readTask.inQueue.isEmpty()) {
                     Character ch = readTask.inQueue.take();
 
@@ -238,6 +246,8 @@ public class TransportTask  implements Runnable {
                         if (state == State.IDLE) {
                             log("awake");
                             sendControlSignal(SUCCESS_SIGNAL);
+                            sendTask.idleMode.set(false);
+                            readTask.idleMode.set(false);
                             setState(State.READ);
                         }
                     } else if (ch == SUCCESS_SIGNAL) {
@@ -305,18 +315,36 @@ public class TransportTask  implements Runnable {
                     if (req.request != null) {
                         if (req.request == "reboot_remote") {
                             log("start send " + req.request);
-                            while(!sendTask.outQueue.isEmpty()) {
+                            waitForSilence(2000);
+                            while (!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
                             }
                             Thread.sleep(2000);
                             sendControlSignal(RESTART_PATTERN);
-                            while(!sendTask.outQueue.isEmpty()) {
+                            while (!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
                             }
                             Thread.sleep(1000);
                             readTask.inQueue.clear();
                             outQueue.take();
                             log("finish send " + req.request);
+                        } else if (req.request == "wake") {
+                            log("start send " + req.request);
+                            while (!sendTask.outQueue.isEmpty()) {
+                                Thread.sleep(100);
+                            }
+                            sendTask.outQueue.put("callDuration " + 2000);
+                            sendTask.outQueue.put(""+AWAKE_SIGNAL);
+                            sendTask.outQueue.put("callDuration " + prefs.signalDuration);
+
+                            while (!sendTask.outQueue.isEmpty()) {
+                                Thread.sleep(100);
+                            }
+                            Thread.sleep(2000);
+                            readTask.inQueue.clear();
+                            outQueue.take();
+                            log("finish send " + req.request);
+
                         } else if (req.request == "config_speed") {
                             log("set call duration to  " + req.intParam);
                             setCallDuration((short)req.intParam);
@@ -373,6 +401,17 @@ public class TransportTask  implements Runnable {
                         logv("expire coldown at " + System.currentTimeMillis());
                         setState(State.SEND);
                     }
+                }
+
+                if (state == State.READ && lastEventTime + 5 * 60 * 1000 < System.currentTimeMillis()) {
+                    sendTask.idleMode.set(true);
+                    readTask.idleMode.set(true);
+                    setState(State.IDLE);
+                }
+                if (state == State.IDLE && !outQueue.isEmpty()) {
+                    sendTask.idleMode.set(false);
+                    readTask.idleMode.set(false);
+                    setState(State.READ);
                 }
             }
 

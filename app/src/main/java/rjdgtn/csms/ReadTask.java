@@ -10,6 +10,7 @@ import android.util.Log;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Math.min;
@@ -43,6 +44,7 @@ public class ReadTask implements Runnable {
     }
 
     public static AtomicInteger bufferDuration = new AtomicInteger(350);
+    public static AtomicBoolean idleMode = new AtomicBoolean(false);
 
 //    public static int SHORT_little_endian_TO_big_endian(int i){
 //        return (((i>>8)&0xff)+((i << 8)&0xff00));
@@ -116,7 +118,9 @@ public class ReadTask implements Runnable {
 
                 }
 
-                //Thread.sleep(1000);
+                if (idleMode.get()) {
+                    Thread.sleep(1000);
+                }
 
                 //Log.d("MY CSMS", "read");
             }

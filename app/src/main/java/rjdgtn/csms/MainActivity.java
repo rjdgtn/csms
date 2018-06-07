@@ -1,31 +1,19 @@
 package rjdgtn.csms;
 
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.media.AudioDeviceInfo;
-import android.media.AudioManager;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.InputType;
 import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
-import android.view.ContextMenu;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -36,18 +24,9 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
@@ -106,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     public boolean onCreateOptionsMenu(Menu menu) {
         //super.onCreateContextMenu(menu, v, menuInfo);
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.your_context_menu, menu);
+        inflater.inflate(R.menu.main_menu, menu);
         return true;
     }
     /**
@@ -180,10 +159,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
             popupMenu.show();
         } else if (itemName.equals("status")) {
-            WorkerService.send(getApplicationContext()
-                    , new HashMap<String, String>() {{
-                        put("code", "status");
-                    }});
+            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "status"); }});
         } else if (itemName.equals("check_sms")) {
             PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
             popupMenu.inflate(R.menu.check_duration);
@@ -200,6 +176,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
+        } else if (itemName.equals("wake")) {
+            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "wake"); }});
         }
         return true;
     }

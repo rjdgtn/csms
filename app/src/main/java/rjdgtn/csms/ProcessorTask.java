@@ -86,7 +86,7 @@ public class ProcessorTask implements Runnable {
                     enableAirplaneModeTime = 0;
                     AirplaneMode.setFlightMode(contex, true);
                 }
-                Thread.sleep(100);
+                Thread.sleep(500);
             }
         } catch (Exception e) {
             log("crash");
@@ -104,6 +104,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
         else if (code.equals("status")) onLocalStatus(command);
         else if (code.equals("check_sms")) onLocalCheckSms(command);
+        else if (code.equals("wake")) onLocalWake(command);
 
         lastLocalCommand = command;
     }
@@ -119,6 +120,10 @@ public class ProcessorTask implements Runnable {
         if (code == STATUS_REQUEST_COMMAND) onRemoteStatusRequest(inputStream);
         if (code == STATUS_ANSWER_COMMAND) onRemoteStatusAnswer(inputStream);
         if (code == CHECK_SMS_REQUEST_COMMAND) onRemoteCheckSms(inputStream);
+    }
+
+    private void onLocalWake(Bundle command) throws InterruptedException {
+        TransportTask.outQueue.put(new OutRequest("wake"));
     }
 
     private void onLocalCheckSms(Bundle command) throws InterruptedException {
