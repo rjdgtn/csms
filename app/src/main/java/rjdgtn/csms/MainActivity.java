@@ -2,11 +2,14 @@ package rjdgtn.csms;
 
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Telephony;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,6 +23,7 @@ import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -176,7 +180,46 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
-        } else if (itemName.equals("wake")) {
+        } else if (itemName.equals("send_sms")) {
+            SmsUtils.getAllSmsMessages(getApplicationContext());
+//            ContentValues my_values = new ContentValues(); // hold the message details
+//            my_values.put("address", "+79060331180");//sender name
+//            my_values.put("body", "some text");
+//            my_values.put("read", 0);
+//            my_values.put("date", System.currentTimeMillis() - 1000);
+//            String path="content://sms/failed";
+//            if( getContentResolver().insert(Uri.parse(path), my_values)!=null){
+//                Toast.makeText(getBaseContext(), "Successfully Faked!",Toast.LENGTH_SHORT).show();
+//
+//                getContentResolver().delete(Uri.parse("content://sms/conversations/-1"), null, null);
+//            } else {
+//                Toast.makeText(getBaseContext(), "Unsuccesful!",Toast.LENGTH_SHORT).show();
+//            }
+//            String phoneNumber = "+79060331180";
+//            String message = "lalala";
+//            String readState = "0";
+//            String time = Long.toString(System.currentTimeMillis());
+//            String folderName = "inbox";
+//
+//            ContentValues values = new ContentValues();
+//            values.put("address", phoneNumber);
+//            values.put("body", message);
+//            values.put("read", readState); //"0" for have not read sms and "1" for have read sms
+//            values.put("date", time);
+//
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//                Uri uri = Telephony.Sms.Sent.CONTENT_URI;
+//                if(folderName.equals("inbox")){
+//                    uri = Telephony.Sms.Inbox.CONTENT_URI;
+//                }
+//                getContentResolver().insert(uri, values);
+//            } else {
+//                getContentResolver().insert(Uri.parse("content://sms/" + folderName), values);
+//            }
+
+
+        }
+        else if (itemName.equals("wake")) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "wake"); }});
         }
         return true;
