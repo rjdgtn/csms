@@ -7,6 +7,7 @@
     <item android:title="status" />
     <item android:title="send_sms" />
     <item android:title="check_sms" />
+    <item android:title="get_sms" />
     <item android:title="echo" />
     <item android:title="test" />
     <item android:title="logs" />

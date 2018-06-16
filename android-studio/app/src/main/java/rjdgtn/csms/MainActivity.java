@@ -21,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewDebug;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -29,6 +30,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -88,8 +90,20 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         intentFilter.addAction("android.intent.action.HEADSET_PLUG");
         registerReceiver(headsetPlugReceiver, intentFilter);
 
-
-        SmsUtils.getAllSmsMessages(getApplicationContext());
+//        Sms sms = new Sms();
+//        sms.number = "number";
+//        sms.text = "text";
+//        try {
+//            sms.toBytes();
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        }
+//        SmsUtils.Sms sms = SmsUtils.getMinInboxWithIndexGreater(getApplicationContext(), 151);
+//        int i = 0;
+        //SmsUtils.getAllSmsMessages(getApplicationContext());
+        //SmsStorage.updateMaxSmsInboxId(getApplicationContext(), 123);
+        //int kind, int id, long date, String number, String text
+        //SmsStorage.saveSms(getApplicationContext(), 1, 1, System.currentTimeMillis(), "+71234567890", "Сообщение сообщение");
     }
 
     @Override
@@ -205,46 +219,20 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                     }
                 }
             });
-            //SmsUtils.getAllSmsMessages(getApplicationContext());
-//            ContentValues my_values = new ContentValues(); // hold the message details
-//            my_values.put("address", "+79060331180");//sender name
-//            my_values.put("body", "some text");
-//            my_values.put("read", 0);
-//            my_values.put("date", System.currentTimeMillis() - 1000);
-//            String path="content://sms/failed";
-//            if( getContentResolver().insert(Uri.parse(path), my_values)!=null){
-//                Toast.makeText(getBaseContext(), "Successfully Faked!",Toast.LENGTH_SHORT).show();
-//
-//                getContentResolver().delete(Uri.parse("content://sms/conversations/-1"), null, null);
-//            } else {
-//                Toast.makeText(getBaseContext(), "Unsuccesful!",Toast.LENGTH_SHORT).show();
-//            }
-//            String phoneNumber = "+71234567890";
-//            String message = "lalala";
-//            String readState = "0";
-//            String time = "";//Long.toString(System.currentTimeMillis());
-//            String folderName = "inbox";
-//
-//            ContentValues values = new ContentValues();
-//            values.put("address", phoneNumber);
-//            values.put("body", message);
-//            values.put("read", readState); //"0" for have not read sms and "1" for have read sms
-//            values.put("date", time);
-//
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//                Uri uri = Telephony.Sms.Sent.CONTENT_URI;
-//                if(folderName.equals("inbox")){
-//                    uri =
-//                            Telephony.Sms.Sent.CONTENT_URI;
-//                }
-//                getContentResolver().insert(uri, values);
-//            } else {
-//                getContentResolver().insert(Uri.parse("content://sms/" + folderName), values);
-//            }
-
-
-        }
-        else if (itemName.equals("wake")) {
+        } else if (itemName.equals("get_sms")) {
+            showEchoEdit(""+(SmsStorage.getMaxSmsInboxId()+1), new StringCallback() {
+                @Override
+                public void on(final String str) {
+                    if (!str.isEmpty()) {
+                        WorkerService.send(getApplicationContext()
+                                , new HashMap<String, String>() {{
+                                    put("code", "get_sms");
+                                    put("smsId", str);
+                                }});
+                    }
+                }
+            });
+        } else if (itemName.equals("wake")) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "wake"); }});
         }
         return true;
@@ -331,11 +319,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     interface StringCallback {
         public void on(String str);
     }
-    protected void showEchoEdit(String title, final StringCallback okClick ) {
+    protected void showEchoEdit(String txt, final StringCallback okClick ) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title);
         final EditText input = new EditText(this);
         input.setMinLines(3);
+        input.setText(txt);
        // input.setHeight(200);
 
         builder.setView(input);

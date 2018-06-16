@@ -18,8 +18,29 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class SmsStorage {
-    static void save(Context context, int id, int kind, long date, String number, String text) {//} throws IOException {
+    static void save(Context context, Sms sms) {
+        save(context, sms.id, sms.kind, sms.date, sms.number, sms.text);
+    }
+
+    static void save(Context context, short id, byte kind, int date, String number, String text) {//} throws IOException {
         boolean isInbox = (kind == Telephony.TextBasedSmsColumns.MESSAGE_TYPE_INBOX);
+
+        String dateStr = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date((long)date*1000));
+        String str = new String();
+        str += ("\n");
+        str += ((isInbox ? "in " : "out ") + Integer.toString(id) + "\n");
+        str += (dateStr + "\n");
+        str += (number + "\n");
+        str += (text + "\n");
+
+        writeToStorage(str);
+
+        if (isInbox) {
+            updateMaxSmsInboxId(context, id);
+        }
+    }
+
+    static void writeToStorage(String str) {
         try {
             File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/history.txt");
             if (!file.exists()) {
@@ -29,22 +50,12 @@ public class SmsStorage {
             }
 
             FileWriter out = new FileWriter(file, true);
-            String dateStr = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(date));
-
-            out.write("\n");
-            out.write((isInbox ? "in " : "out ") + Integer.toString(id) + "\n");
-            out.write(dateStr + "\n");
-            out.write(number + "\n");
-            out.write(text + "\n");
-
+            out.write(str);
             out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        if (isInbox) {
-            updateMaxSmsInboxId(context, id);
-        }
     }
 
     static int getMaxSmsInboxId() {

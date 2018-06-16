@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.provider.Telephony;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -17,6 +18,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -70,11 +73,6 @@ public class ProcessorTask implements Runnable {
 
     @Override
     public void run() {
-
-        Status status = Status.make(contex);
-        byte[] b = status.toBytes();
-
-
         log("start");
         try {
             while (true) {
@@ -104,6 +102,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("wake")) onLocalWake(command);
         else if (code.equals("check_sms")) onLocalCheckSms(command);
         else if (code.equals("send_sms")) onLocalSendSms(command);
+        else if (code.equals("get_sms")) onLocalGetSms(command);
 
         lastLocalCommand = command;
     }
@@ -111,7 +110,7 @@ public class ProcessorTask implements Runnable {
     private void onRemoteCommand(byte[] data) throws InterruptedException, IOException {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
         if (inputStream.available() == 0) return;
-        int code = inputStream.read();
+        byte code = (byte)inputStream.read();
         if (code == ECHO_COMMAND) onRemoteEcho(inputStream);
         if (code == CONFIG_SPEED_COMMAND) onRemoteConfigSpeed(inputStream);
         if (code == FAIL_COMMAND) onRemoteFail();
@@ -121,21 +120,75 @@ public class ProcessorTask implements Runnable {
         if (code == CHECK_SMS_REQUEST_COMMAND) onRemoteCheckSms(inputStream);
         if (code == SEND_SMS_REQUEST_COMMAND) onRemoteSendSms(inputStream);
         if (code == SEND_SMS_ANSWER_COMMAND) onRemoteSendSmsAnswer(inputStream);
+        if (code == GET_SMS_REQUEST_COMMAND) onRemoteGetSms(inputStream);
+        if (code == GET_SMS_ANSWER_COMMAND) onRemoteGetSmsAnswer(inputStream);
     }
 
     private void onLocalWake(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("wake"));
     }
+    private void onRemoteGetSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
+        if (stream.available() == 0) {
+            log("no new sms");
+        } else {
+            byte[] buf = new byte[stream.available()];
+            stream.read(buf);
+            ByteBuffer bbuf =  ByteBuffer.wrap(buf, 0, buf.length);
+            Sms sms = new Sms((byte)Telephony.TextBasedSmsColumns.MESSAGE_TYPE_INBOX, bbuf);
+            SmsStorage.save(contex, sms);
+            
+            String str = new String();
+            str += ("new sms\n");
+            str += (Integer.toString(sms.id) + "\n");
+            str += (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date((long)sms.date*1000)) + "\n");
+            str += (sms.number + "\n");
+            str += (sms.text + "\n");
+            log(str);
+        }
+    }
+
+    private void onRemoteGetSms(ByteArrayInputStream stream) throws InterruptedException, IOException {
+        if (stream.available() == 0) return;
+        short smsId = getShort(stream);
+        Sms sms = SmsUtils.getMinInboxWithIndexGreater(contex, smsId);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(GET_SMS_ANSWER_COMMAND);
+        if (sms != null) {
+            outputStream.write(sms.toBytes());
+        }
+        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        onRemoteCommand(outputStream.toByteArray());
+    }
+
+    private void onLocalGetSms(Bundle command) throws InterruptedException, IOException {
+        String smsId = command.getString("smsId");
+        Short smsIdShort = Short.parseShort(smsId);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(GET_SMS_REQUEST_COMMAND);
+        putShort(outputStream, smsIdShort);
+        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        onRemoteCommand(outputStream.toByteArray());
+    }
 
     private void onRemoteSendSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) return;
-        int smsId = stream.read();
-
+        ByteBuffer buf;
+        short smsId = getShort(stream)  ;
+        if (smsId > 0) {
+            log("sms sended: " + smsId);
+            SmsStorage.writeToStorage("sms sended:" + smsId + "\n");
+        } else {
+            log("sms was not send ");
+            SmsStorage.writeToStorage("sms was not send" + "\n");
+        }
     }
 
     private void onLocalSendSms(Bundle command) throws InterruptedException, IOException {
         String number = command.getString("number");
         String text = command.getString("text");
+
+        SmsStorage.save(contex, (short)0, (byte)Telephony.TextBasedSmsColumns.MESSAGE_TYPE_SENT, (int)(System.currentTimeMillis()/1000), number, text);
+
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(SEND_SMS_REQUEST_COMMAND);
         outputStream.write(number.length());
@@ -147,7 +200,7 @@ public class ProcessorTask implements Runnable {
 
     private void onRemoteSendSms(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) return;
-        int numberLength = stream.read();
+        byte numberLength = (byte)stream.read();
         String number = readString(stream, numberLength);
         String message = readString(stream, 0);
 
@@ -155,14 +208,15 @@ public class ProcessorTask implements Runnable {
         log("number: " + number);
         log("message: " + message);
 
-        int smsId = SmsUtils.send(contex, number, message);
+        short smsId = SmsUtils.send(contex, number, message);
         if (smsId > 0) log("sms sended");
         else log("sms not sended");
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(SEND_SMS_ANSWER_COMMAND);
-        outputStream.write(smsId);
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        putShort(outputStream, smsId);
+        onRemoteCommand(outputStream.toByteArray());
+        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
     }
 
     private void onLocalCheckSms(Bundle command) throws InterruptedException {
@@ -175,8 +229,8 @@ public class ProcessorTask implements Runnable {
     }
 
     private void onRemoteCheckSms(ByteArrayInputStream stream) throws IOException, InterruptedException {
-        byte duration = (byte) stream.read();
-        SmsUtils.disableAirplaneForTime(contex, duration);
+        byte duration = (byte)stream.read();
+        SmsUtils.disableAirplaneForTime(contex, duration * 60 * 1000);
     }
 
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
@@ -209,23 +263,18 @@ public class ProcessorTask implements Runnable {
         log("\tbluetooth: " + status.bluetooth);
     }
 
-    private void onLocalConfigSpeed(Bundle command) throws InterruptedException {
+    private void onLocalConfigSpeed(Bundle command) throws InterruptedException, IOException {
         short duration = (short)Integer.parseInt(command.getString("value"));
         log("local request change call duration to " + duration );
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(CONFIG_SPEED_COMMAND);
-        outputStream.write(duration >> 8);
-        outputStream.write((duration << 8) >> 8);
+        putShort(outputStream, duration);
         TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
     }
 
     private void onRemoteConfigSpeed(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) return;
-        //byte[] b = new byte[2];
-        int duration = stream.read();
-        duration = duration << 8;
-        duration += stream.read();
-
+        short duration = getShort(stream);
         log("remote request change call duration to " + duration );
         TransportTask.outQueue.put(new OutRequest("config_speed", duration));
     }
@@ -268,7 +317,7 @@ public class ProcessorTask implements Runnable {
 
     private void onRemoteEcho(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) return;
-        int echoStep = stream.read();
+        byte echoStep = (byte)stream.read();
         String msg = readString(stream, 0);
         log("echo: " + msg);
         if (echoStep > 0) {
@@ -287,7 +336,15 @@ public class ProcessorTask implements Runnable {
         return new String(stringBuf, ENCODING);
     }
 
+    private void putShort(ByteArrayOutputStream stream, short s) throws IOException {
+        stream.write(ByteBuffer.allocate(2).putShort(s).array());
+    }
 
+    private short getShort(ByteArrayInputStream stream) throws IOException {
+        byte[] b = new byte[2];
+        stream.read(b);
+        return ByteBuffer.wrap(b).getShort();
+    }
 }
 
 

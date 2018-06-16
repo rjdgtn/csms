@@ -75,7 +75,6 @@ public class Status implements Serializable {
         buffer.put((byte)(0 | (wifi ? 0b1 : 0b0) | (bluetooth ? 0b10 : 0b00) | (location ? 0b100 : 0b000) | (airplane ? 0b1000 : 0b0000)));
 
         return buffer.array();
-
     }
 
     String getGsmLevelStrign() {

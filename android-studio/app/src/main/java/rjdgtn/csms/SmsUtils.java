@@ -9,13 +9,19 @@ import android.provider.Telephony;
 import com.klinker.android.send_message.*;
 
 public class SmsUtils  {
-
+//    public static class Sms {
+//        int id = 0;
+//        int kind = 0;
+//        long date = 0;
+//        String number = null;
+//        String text = null;
+//    }
 
     private static long enableAirplaneModeTime = 0;
 
     public static void disableAirplaneForTime(Context context, int duration) {
         AirplaneMode.setFlightMode(context, false);
-        enableAirplaneModeTime = System.currentTimeMillis() + duration * 60 * 1000;
+        enableAirplaneModeTime = System.currentTimeMillis() + duration ;
     }
 
     public static void enableAirplane(Context context) {
@@ -30,34 +36,29 @@ public class SmsUtils  {
         }
     }
 
-    public static void getAllSmsMessages(Context context) {
-        Cursor cursor = context.getContentResolver().query(Uri.parse("content://sms/sent"), null, null, null, null);
+    public static Sms getMinInboxWithIndexGreater(Context context, int id) {
+        String where = String.format("%s >= %d", Telephony.Sms._ID, id);
+        Cursor cursor = context.getContentResolver().query(Uri.parse("content://sms/inbox"), null, where, null, Telephony.Sms._ID);
+        Sms res = null;
         try {
             if (cursor.moveToFirst()) {
                 do {
-                    //int threadId = cursor.getInt(cursor.getColumnIndex(Telephony.Sms.));
-                    String[] str = cursor.getColumnNames();
-                    String person = cursor.getString(cursor.getColumnIndex(Telephony.Sms.ADDRESS));
-                    int threadId = cursor.getInt(cursor.getColumnIndex(Telephony.Sms.THREAD_ID));
-                    String messageId = cursor.getString(cursor.getColumnIndex(Telephony.Sms._ID));
-                    String message = cursor.getString(cursor.getColumnIndex(Telephony.Sms.BODY));
-                    int type = cursor.getInt(cursor.getColumnIndex(Telephony.Sms.TYPE));
-                    long date = cursor.getLong(cursor.getColumnIndex(Telephony.Sms.DATE));
-                    int i = 0;
-                    //App.getDataBaseManager().saveMessage(new SmsMmsMessage(threadId, messageId,
-                     //       message, type, date, null, null));
+                    res = new Sms();
+                    res.id = (short)cursor.getInt(cursor.getColumnIndex(Telephony.Sms._ID));
+                    res.kind = (byte)cursor.getInt(cursor.getColumnIndex(Telephony.Sms.TYPE));
+                    res.date = (int)(cursor.getLong(cursor.getColumnIndex(Telephony.Sms.DATE))/1000);
+                    res.number = cursor.getString(cursor.getColumnIndex(Telephony.Sms.ADDRESS));
+                    res.text = cursor.getString(cursor.getColumnIndex(Telephony.Sms.BODY));
+                    break;
                 } while (cursor.moveToNext());
             }
         } finally {
             cursor.close();
         }
+        return res;
     }
 
-    public static void getSmsMessages() {
-
-    }
-
-    public static int send(Context context, String number, String message) throws InterruptedException {
+    public static short send(Context context, String number, String message) throws InterruptedException {
         disableAirplaneForTime(context, 55 * 1000 + 55 * 1000 + 5000 * 10);
 
         for (int i = 0; i < 10; i++) {
@@ -67,7 +68,7 @@ public class SmsUtils  {
 
         long sendTime = System.currentTimeMillis();
 
-        int smsId = 0;
+        short smsId = 0;
         for (int i = 0; i < 10; i++) {
             Settings settings = new Settings();
            // settings.setUseSystemSending(true);
@@ -87,7 +88,7 @@ public class SmsUtils  {
             try {
                 if (cursor.moveToFirst()) {
                     do {
-                        smsId = Math.max(smsId, cursor.getInt(cursor.getColumnIndex(Telephony.Sms._ID)));
+                        smsId = (short)Math.max(smsId, cursor.getInt(cursor.getColumnIndex(Telephony.Sms._ID)));
                     } while (cursor.moveToNext());
                 }
             } finally {
