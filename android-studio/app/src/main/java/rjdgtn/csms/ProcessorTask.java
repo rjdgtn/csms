@@ -47,6 +47,7 @@ public class ProcessorTask implements Runnable {
     private final byte GET_SMS_REQUEST_COMMAND = 77;
     private final byte GET_SMS_ANSWER_COMMAND = 88;
     private final byte SEND_SMS_REQUEST_COMMAND = 99;
+    private final byte SEND_SMS_ANSWER_COMMAND = 111;
 
 
     public static final byte FAIL_COMMAND = 127;
@@ -119,10 +120,17 @@ public class ProcessorTask implements Runnable {
         if (code == STATUS_ANSWER_COMMAND) onRemoteStatusAnswer(inputStream);
         if (code == CHECK_SMS_REQUEST_COMMAND) onRemoteCheckSms(inputStream);
         if (code == SEND_SMS_REQUEST_COMMAND) onRemoteSendSms(inputStream);
+        if (code == SEND_SMS_ANSWER_COMMAND) onRemoteSendSmsAnswer(inputStream);
     }
 
     private void onLocalWake(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("wake"));
+    }
+
+    private void onRemoteSendSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
+        if (stream.available() == 0) return;
+        int smsId = stream.read();
+
     }
 
     private void onLocalSendSms(Bundle command) throws InterruptedException, IOException {
@@ -147,20 +155,14 @@ public class ProcessorTask implements Runnable {
         log("number: " + number);
         log("message: " + message);
 
-        SmsUtils.send(contex, number, message);
+        int smsId = SmsUtils.send(contex, number, message);
+        if (smsId > 0) log("sms sended");
+        else log("sms not sended");
 
-        log("sms sended");
-
-//
-//  String msg = new String(stringBuf, ENCODING);
-//        log("echo: " + msg);
-//        if (echoStep > 0) {
-//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            outputStream.write(ECHO_COMMAND);
-//            outputStream.write(echoStep-1);
-//            outputStream.write(msg.getBytes(ENCODING));
-//            TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
-//        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(SEND_SMS_ANSWER_COMMAND);
+        outputStream.write(smsId);
+        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
     }
 
     private void onLocalCheckSms(Bundle command) throws InterruptedException {
