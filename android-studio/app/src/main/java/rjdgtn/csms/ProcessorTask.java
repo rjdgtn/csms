@@ -14,6 +14,7 @@ import android.util.Log;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
@@ -33,7 +34,7 @@ public class ProcessorTask implements Runnable {
     //CommandProcessor curProcessor = null;
     public static BlockingQueue<Bundle> localCommands = new LinkedBlockingQueue<Bundle>();
 
-    private final String ENCODING = "US-ASCII";
+    private final String ENCODING = "UTF-8";
 
     private final byte NO_COMMAND = 000;
     private final byte SKIP_COMMAND = 1;
@@ -45,12 +46,11 @@ public class ProcessorTask implements Runnable {
     //private final byte CHECK_SMS_ANSWER_COMMAND = 66;
     private final byte GET_SMS_REQUEST_COMMAND = 77;
     private final byte GET_SMS_ANSWER_COMMAND = 88;
+    private final byte SEND_SMS_REQUEST_COMMAND = 99;
 
 
     public static final byte FAIL_COMMAND = 127;
     public static final byte SUCCESS_COMMAND = 126;
-
-    private long enableAirplaneModeTime = 0;
 
     Bundle lastLocalCommand = null;
 
@@ -82,10 +82,7 @@ public class ProcessorTask implements Runnable {
                 } else if (!localCommands.isEmpty()) {
                     onLocalCommand(localCommands.take());
                 }
-                if (enableAirplaneModeTime > 0 && enableAirplaneModeTime < System.currentTimeMillis()) {
-                    enableAirplaneModeTime = 0;
-                    AirplaneMode.setFlightMode(contex, true);
-                }
+                SmsUtils.update(contex);
                 Thread.sleep(500);
             }
         } catch (Exception e) {
@@ -103,8 +100,9 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("echo")) onLocalEcho(command);
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
         else if (code.equals("status")) onLocalStatus(command);
-        else if (code.equals("check_sms")) onLocalCheckSms(command);
         else if (code.equals("wake")) onLocalWake(command);
+        else if (code.equals("check_sms")) onLocalCheckSms(command);
+        else if (code.equals("send_sms")) onLocalSendSms(command);
 
         lastLocalCommand = command;
     }
@@ -120,10 +118,49 @@ public class ProcessorTask implements Runnable {
         if (code == STATUS_REQUEST_COMMAND) onRemoteStatusRequest(inputStream);
         if (code == STATUS_ANSWER_COMMAND) onRemoteStatusAnswer(inputStream);
         if (code == CHECK_SMS_REQUEST_COMMAND) onRemoteCheckSms(inputStream);
+        if (code == SEND_SMS_REQUEST_COMMAND) onRemoteSendSms(inputStream);
     }
 
     private void onLocalWake(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("wake"));
+    }
+
+    private void onLocalSendSms(Bundle command) throws InterruptedException, IOException {
+        String number = command.getString("number");
+        String text = command.getString("text");
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(SEND_SMS_REQUEST_COMMAND);
+        outputStream.write(number.length());
+        outputStream.write(number.getBytes(ENCODING));
+        outputStream.write(text.getBytes(ENCODING));
+        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        onRemoteCommand(outputStream.toByteArray());
+    }
+
+    private void onRemoteSendSms(ByteArrayInputStream stream) throws InterruptedException, IOException {
+        if (stream.available() == 0) return;
+        int numberLength = stream.read();
+        String number = readString(stream, numberLength);
+        String message = readString(stream, 0);
+
+        log("sms sending");
+        log("number: " + number);
+        log("message: " + message);
+
+        SmsUtils.send(contex, number, message);
+
+        log("sms sended");
+
+//
+//  String msg = new String(stringBuf, ENCODING);
+//        log("echo: " + msg);
+//        if (echoStep > 0) {
+//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//            outputStream.write(ECHO_COMMAND);
+//            outputStream.write(echoStep-1);
+//            outputStream.write(msg.getBytes(ENCODING));
+//            TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+//        }
     }
 
     private void onLocalCheckSms(Bundle command) throws InterruptedException {
@@ -137,8 +174,7 @@ public class ProcessorTask implements Runnable {
 
     private void onRemoteCheckSms(ByteArrayInputStream stream) throws IOException, InterruptedException {
         byte duration = (byte) stream.read();
-        AirplaneMode.setFlightMode(contex, false);
-        enableAirplaneModeTime = System.currentTimeMillis() + duration * 60 * 1000;
+        SmsUtils.disableAirplaneForTime(contex, duration);
     }
 
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
@@ -224,17 +260,14 @@ public class ProcessorTask implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(ECHO_COMMAND);
         outputStream.write(10);
-        outputStream.write(msg.getBytes("US-ASCII"));
+        outputStream.write(msg.getBytes(ENCODING));
         TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
     }
 
     private void onRemoteEcho(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) return;
         int echoStep = stream.read();
-        byte[] stringBuf = new byte[stream.available()];
-        stream.read(stringBuf);
-
-        String msg = new String(stringBuf, ENCODING);
+        String msg = readString(stream, 0);
         log("echo: " + msg);
         if (echoStep > 0) {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -245,6 +278,12 @@ public class ProcessorTask implements Runnable {
         }
     }
 
+    private String readString(ByteArrayInputStream stream, int length) throws IOException {
+        if (length == 0) length = stream.available();
+        byte[] stringBuf = new byte[length];
+        stream.read(stringBuf);
+        return new String(stringBuf, ENCODING);
+    }
 
 
 }

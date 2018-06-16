@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.WRITE_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.provider.Telephony.SMS_RECEIVED" />
 
     <!-- uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" / -->
     <application
@@ -55,6 +57,14 @@
                 <action android:name="android.intent.action.NEW_OUTGOING_CALL"/>
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".MyDeliveredReceiver"
+            android:taskAffinity="rjdgtn.csms.SMS_DELIVERED"/>
+
+        <receiver
+            android:name=".MySentReceiver"
+            android:taskAffinity="rjdgtn.csms.SMS_SENT"/>
 
         <!--<service-->
             <!--android:name=".LauncherService"-->

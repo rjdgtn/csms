@@ -32,7 +32,7 @@ public class Status implements Serializable {
         if (Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0) != 0) {
             status.gsm = 0;
         } else {
-            status.gsm = MyPhoneStateListener.signalStrength;
+            status.gsm = MyPhoneStateListener.getSignalStrength();
         }
 
         status.airplane = AirplaneMode.isFlightModeEnabled(context);

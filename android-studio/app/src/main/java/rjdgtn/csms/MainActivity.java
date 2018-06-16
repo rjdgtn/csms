@@ -1,5 +1,6 @@
 package rjdgtn.csms;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -13,10 +14,13 @@ import android.provider.Telephony;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -83,6 +87,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("android.intent.action.HEADSET_PLUG");
         registerReceiver(headsetPlugReceiver, intentFilter);
+
+
+        SmsUtils.getAllSmsMessages(getApplicationContext());
     }
 
     @Override
@@ -105,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         if (itemName.equals("reboot_remote") || itemName.equals("test")) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", itemName); }});
         } else if (itemName.equals("echo")) {
-            showEdit("echo", new StringCallback() {
+            showEchoEdit("echo", new StringCallback() {
                 @Override
                 public void on(final String str) {
                     if (!str.isEmpty()) {
@@ -181,7 +188,24 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
             popupMenu.show();
         } else if (itemName.equals("send_sms")) {
-            SmsUtils.getAllSmsMessages(getApplicationContext());
+            showSmsEdit("sms", new SmsInputCallback() {
+                @Override
+                public void on(final String number, final String text) {
+                    if (number.isEmpty()) {
+                        Toast.makeText(getBaseContext(), "no number",Toast.LENGTH_SHORT).show();
+                    } else if (text.isEmpty()) {
+                        Toast.makeText(getBaseContext(), "no text",Toast.LENGTH_SHORT).show();
+                    } else {
+                        WorkerService.send(getApplicationContext()
+                                , new HashMap<String, String>() {{
+                                    put("code", "send_sms");
+                                    put("number", number);
+                                    put("text", text);
+                                }});
+                    }
+                }
+            });
+            //SmsUtils.getAllSmsMessages(getApplicationContext());
 //            ContentValues my_values = new ContentValues(); // hold the message details
 //            my_values.put("address", "+79060331180");//sender name
 //            my_values.put("body", "some text");
@@ -195,10 +219,10 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 //            } else {
 //                Toast.makeText(getBaseContext(), "Unsuccesful!",Toast.LENGTH_SHORT).show();
 //            }
-//            String phoneNumber = "+79060331180";
+//            String phoneNumber = "+71234567890";
 //            String message = "lalala";
 //            String readState = "0";
-//            String time = Long.toString(System.currentTimeMillis());
+//            String time = "";//Long.toString(System.currentTimeMillis());
 //            String folderName = "inbox";
 //
 //            ContentValues values = new ContentValues();
@@ -210,7 +234,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 //                Uri uri = Telephony.Sms.Sent.CONTENT_URI;
 //                if(folderName.equals("inbox")){
-//                    uri = Telephony.Sms.Inbox.CONTENT_URI;
+//                    uri =
+//                            Telephony.Sms.Sent.CONTENT_URI;
 //                }
 //                getContentResolver().insert(uri, values);
 //            } else {
@@ -306,7 +331,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     interface StringCallback {
         public void on(String str);
     }
-    protected void showEdit(String title, final StringCallback okClick ) {
+    protected void showEchoEdit(String title, final StringCallback okClick ) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
         final EditText input = new EditText(this);
@@ -319,6 +344,35 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 okClick.on(input.getText().toString());
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    interface SmsInputCallback {
+        public void on(String number, String text);
+    }
+    protected void showSmsEdit(String title, final SmsInputCallback okClick ) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.sms_input, null);
+
+        builder.setView(dialogView);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String number = ((EditText) dialogView.findViewById(R.id.editText6)).getText().toString();
+                String text = ((EditText) dialogView.findViewById(R.id.editText7)).getText().toString();
+                okClick.on(number, text);
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
