@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Telephony;
@@ -37,6 +38,9 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
+
+import android.util.Log;
+import java.lang.reflect.Method;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
@@ -89,6 +93,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("android.intent.action.HEADSET_PLUG");
         registerReceiver(headsetPlugReceiver, intentFilter);
+
+        //new AudioTest().forceRouteHeadset(false);
+
+//        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+//        am.setRouting();
 
 //        Sms sms = new Sms();
 //        sms.number = "number";
@@ -386,6 +395,42 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
         }
     }
+
+//    public class AudioTest {
+//        private final String TAG = "AudioTest";
+//        // Constants copied from AudioSystem
+//        private static final int DEVICE_IN_WIRED_HEADSET    = 0x400000;
+//        private static final int DEVICE_OUT_EARPIECE        = 0x1;
+//        private static final int DEVICE_OUT_WIRED_HEADSET   = 0x4;
+//        private static final int DEVICE_STATE_UNAVAILABLE   = 0;
+//        private static final int DEVICE_STATE_AVAILABLE     = 1;
+//
+//        /* force route function through AudioSystem */
+//        private void setDeviceConnectionState(final int device, final int state, final String address) {
+//            try {
+//                Class<?> audioSystem = Class.forName("android.media.AudioSystem");
+//                Method setDeviceConnectionState = audioSystem.getMethod(
+//                        "setDeviceConnectionState", int.class, int.class, String.class);
+//
+//                setDeviceConnectionState.invoke(audioSystem, device, state, address);
+//            } catch (Exception e) {
+//                Log.e(TAG, "setDeviceConnectionState failed: " + e);
+//            }
+//        }
+//
+//        public void forceRouteHeadset(boolean enable) {
+//            if (enable) {
+//                Log.i(TAG, "force route to Headset");
+//                setDeviceConnectionState(DEVICE_IN_WIRED_HEADSET, DEVICE_STATE_AVAILABLE, "");
+//                setDeviceConnectionState(DEVICE_OUT_WIRED_HEADSET, DEVICE_STATE_AVAILABLE, "");
+//            } else {
+//                Log.i(TAG, "force route to Earpirce");
+//                setDeviceConnectionState(DEVICE_IN_WIRED_HEADSET, DEVICE_STATE_UNAVAILABLE, "");
+//                setDeviceConnectionState(DEVICE_OUT_WIRED_HEADSET, DEVICE_STATE_UNAVAILABLE, "");
+//                setDeviceConnectionState(DEVICE_OUT_EARPIECE, DEVICE_STATE_AVAILABLE, "");
+//            }
+//        }
+//    }
 }
 
 //class ActivityUpdater extends TimerTask {
