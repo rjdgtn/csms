@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Calendar;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
@@ -85,7 +86,12 @@ public class WorkerService extends Service {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
 
         timer = new Timer();
-        timer.schedule(new WorkerService.ShutdownTask(getApplicationContext()), 4*3600*1000);
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(calendar.MINUTE, 30);
+        int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY)/2 + 1);
+        calendar.set(calendar.HOUR_OF_DAY, nextReboot);
+        long delay = calendar.getTime().getTime() - System.currentTimeMillis();
+        timer.schedule(new WorkerService.ShutdownTask(getApplicationContext()), delay);
 
         log("create");
         super.onCreate();
