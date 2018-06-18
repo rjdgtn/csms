@@ -73,5 +73,16 @@ public class AirplaneMode {
             intent.putExtra("state", enable == 1);
             context.sendBroadcast(intent);
         }
+
+        log(context, "Airplane " + (on?"enabled":"disabled"));
+
+    }
+
+    private static void log(Context context, String str) {
+        Log.d("MY PRCR", str);
+        Intent intent = new Intent("csms_log");
+        intent.putExtra("log", str);
+        intent.putExtra("ch", "PRCR");
+        context.sendBroadcast(intent);
     }
 }

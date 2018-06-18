@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.provider.Telephony;
 import com.klinker.android.send_message.*;
 
+import java.util.Calendar;
+
 public class SmsUtils  {
 //    public static class Sms {
 //        int id = 0;
@@ -19,9 +21,9 @@ public class SmsUtils  {
 
     private static long enableAirplaneModeTime = 0;
 
-    public static void disableAirplaneForTime(Context context, int duration) {
+    public static void disableAirplaneForSeconds(Context context, int duration) {
         AirplaneMode.setFlightMode(context, false);
-        enableAirplaneModeTime = System.currentTimeMillis() + duration ;
+        enableAirplaneModeTime = Math.max(enableAirplaneModeTime, System.currentTimeMillis() + duration * 1000);
     }
 
     public static void enableAirplane(Context context) {
@@ -33,6 +35,15 @@ public class SmsUtils  {
         if (enableAirplaneModeTime > 0 && enableAirplaneModeTime < System.currentTimeMillis()) {
             enableAirplaneModeTime = 0;
             AirplaneMode.setFlightMode(context, true);
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.getTime();
+        int minutes =  calendar.get(calendar.MINUTE);
+        int hours =  calendar.get(calendar.HOUR_OF_DAY);
+
+        if ((hours == 9 || hours == 12 || hours == 16 || hours == 19 || hours == 23) && minutes < 5 && AirplaneMode.isFlightModeEnabled(context)) {
+            disableAirplaneForSeconds(context, 10 * 60);
         }
     }
 
@@ -59,7 +70,7 @@ public class SmsUtils  {
     }
 
     public static short send(Context context, String number, String message) throws InterruptedException {
-        disableAirplaneForTime(context, 55 * 1000 + 55 * 1000 + 5000 * 10);
+        disableAirplaneForSeconds(context, 55 + 55 + 5 * 10);
 
         for (int i = 0; i < 10; i++) {
             Thread.sleep((i+1)*1000);

@@ -230,7 +230,7 @@ public class ProcessorTask implements Runnable {
 
     private void onRemoteCheckSms(ByteArrayInputStream stream) throws IOException, InterruptedException {
         byte duration = (byte)stream.read();
-        SmsUtils.disableAirplaneForTime(contex, duration * 60 * 1000);
+        SmsUtils.disableAirplaneForSeconds(contex, duration * 60);
     }
 
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
