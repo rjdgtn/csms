@@ -127,7 +127,10 @@ public class TransportTask  implements Runnable {
     }
 
     private void sendControlSignal(String signal) throws InterruptedException {
-        if (signal.length() == 1) signal = signal + "9";
+        if (signal.length() == 1) {
+            if (signal.charAt(0) != '9') signal = signal + "9";
+            else signal = signal + "1";
+        }
         logv("send control " + signal);
 
         waitForSilence(prefs.controlDelay);
@@ -228,12 +231,13 @@ public class TransportTask  implements Runnable {
             long lastEventTime = System.currentTimeMillis();;
 
             while (true) {
+                //Log.v("MY ", " - " + state + " " + lastEventTime + " " + System.currentTimeMillis());
                 if (state == State.READ) {
                     Thread.sleep(100);
                 } else if (state == State.IDLE) {
                     Thread.sleep(2000);
                 }
-                if (!readTask.inQueue.isEmpty() || sendTask.outQueue.isEmpty() || outQueue.isEmpty()) {
+                if (!readTask.inQueue.isEmpty() || !sendTask.outQueue.isEmpty() || !outQueue.isEmpty()) {
                     lastEventTime = System.currentTimeMillis();
                 }
 
@@ -333,8 +337,8 @@ public class TransportTask  implements Runnable {
                             while (!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
                             }
-                            sendTask.outQueue.put("callDuration " + 2000);
-                            sendTask.outQueue.put(""+AWAKE_SIGNAL);
+                            sendTask.outQueue.put("callDuration " + 4000);
+                            sendTask.outQueue.put(""+AWAKE_SIGNAL+"1");
                             sendTask.outQueue.put("callDuration " + prefs.signalDuration);
 
                             while (!sendTask.outQueue.isEmpty()) {
