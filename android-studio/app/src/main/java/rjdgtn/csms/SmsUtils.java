@@ -38,7 +38,6 @@ public class SmsUtils  {
         }
 
         Calendar calendar = Calendar.getInstance();
-        calendar.getTime();
         int minutes =  calendar.get(calendar.MINUTE);
         int hours =  calendar.get(calendar.HOUR_OF_DAY);
 

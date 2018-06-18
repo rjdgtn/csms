@@ -91,6 +91,15 @@ public class ProcessorTask implements Runnable {
 
     }
 
+    private void sendToRemotePhone(byte[] bytes) throws InterruptedException, IOException {
+
+        if (false) {
+            TransportTask.outQueue.put(new OutRequest(bytes));
+        } else {
+            onRemoteCommand(bytes);
+        }
+    }
+
     private void onLocalCommand(Bundle command) throws InterruptedException, IOException {
         String code = command.getString("code");
         log("command " + code);
@@ -156,8 +165,7 @@ public class ProcessorTask implements Runnable {
         if (sms != null) {
             outputStream.write(sms.toBytes());
         }
-        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
-        onRemoteCommand(outputStream.toByteArray());
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onLocalGetSms(Bundle command) throws InterruptedException, IOException {
@@ -166,8 +174,7 @@ public class ProcessorTask implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(GET_SMS_REQUEST_COMMAND);
         putShort(outputStream, smsIdShort);
-        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
-        onRemoteCommand(outputStream.toByteArray());
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteSendSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
@@ -194,8 +201,7 @@ public class ProcessorTask implements Runnable {
         outputStream.write(number.length());
         outputStream.write(number.getBytes(ENCODING));
         outputStream.write(text.getBytes(ENCODING));
-        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
-        onRemoteCommand(outputStream.toByteArray());
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteSendSms(ByteArrayInputStream stream) throws InterruptedException, IOException {
@@ -215,17 +221,16 @@ public class ProcessorTask implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(SEND_SMS_ANSWER_COMMAND);
         putShort(outputStream, smsId);
-        onRemoteCommand(outputStream.toByteArray());
-        //TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
-    private void onLocalCheckSms(Bundle command) throws InterruptedException {
+    private void onLocalCheckSms(Bundle command) throws InterruptedException, IOException {
         byte duration = (byte)Integer.parseInt(command.getString("duration"));
         log("local request check sms in " + duration + " minutes");
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(CHECK_SMS_REQUEST_COMMAND);
         outputStream.write(duration);
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteCheckSms(ByteArrayInputStream stream) throws IOException, InterruptedException {
@@ -236,16 +241,14 @@ public class ProcessorTask implements Runnable {
     private void onLocalStatus(Bundle command) throws InterruptedException, IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(STATUS_REQUEST_COMMAND);
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
-
-//        onRemoteStatusAnswer(new ByteArrayInputStream(Status.make(contex).toBytes()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteStatusRequest(ByteArrayInputStream stream) throws IOException, InterruptedException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(STATUS_ANSWER_COMMAND);
         outputStream.write(Status.make(contex).toBytes()) ;
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteStatusAnswer(ByteArrayInputStream stream) throws IOException {
@@ -269,7 +272,7 @@ public class ProcessorTask implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(CONFIG_SPEED_COMMAND);
         putShort(outputStream, duration);
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteConfigSpeed(ByteArrayInputStream stream) throws InterruptedException, IOException {
@@ -303,7 +306,7 @@ public class ProcessorTask implements Runnable {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(SKIP_COMMAND);
         outputStream.write(new byte[] {0,1,2,3,4,5,6,7,8,9});
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onLocalEcho(Bundle command) throws InterruptedException, IOException {
@@ -312,7 +315,7 @@ public class ProcessorTask implements Runnable {
         outputStream.write(ECHO_COMMAND);
         outputStream.write(10);
         outputStream.write(msg.getBytes(ENCODING));
-        TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onRemoteEcho(ByteArrayInputStream stream) throws InterruptedException, IOException {
@@ -325,7 +328,7 @@ public class ProcessorTask implements Runnable {
             outputStream.write(ECHO_COMMAND);
             outputStream.write(echoStep-1);
             outputStream.write(msg.getBytes(ENCODING));
-            TransportTask.outQueue.put(new OutRequest(outputStream.toByteArray()));
+            sendToRemotePhone(outputStream.toByteArray());
         }
     }
 
