@@ -26,6 +26,7 @@
     <uses-permission android:name="android.provider.Telephony.SMS_RECEIVED" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" / -->
     <application
@@ -68,25 +69,25 @@
             android:name=".MySentReceiver"
             android:taskAffinity="rjdgtn.csms.SMS_SENT"/>
 
-        <!--<service-->
-            <!--android:name=".LauncherService"-->
-            <!--android:enabled="true"-->
-            <!--android:exported="true"-->
-            <!--android:process=":launcherProcess" />-->
-        <!--<service-->
-            <!--android:name=".WorkerService"-->
-            <!--android:enabled="true"-->
-            <!--android:exported="true"-->
-            <!--android:process=":workerProcess"/>-->
-
         <service
             android:name=".LauncherService"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="true"
+            android:process=":launcherProcess" />
         <service
             android:name=".WorkerService"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="true"
+            android:process=":workerProcess"/>
+
+        <!--<service-->
+            <!--android:name=".LauncherService"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="true" />-->
+        <!--<service-->
+            <!--android:name=".WorkerService"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="true" />-->
 
 
 
