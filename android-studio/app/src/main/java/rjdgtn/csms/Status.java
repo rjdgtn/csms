@@ -49,6 +49,8 @@ public class Status implements Serializable {
 
         status.uptime = (byte) Math.min(255, (System.currentTimeMillis() - WorkerService.launchTime) / (1000 * 30 * 60));
 
+        status.charging = Power.isConnected(context);
+
         return status;
     }
 
@@ -65,6 +67,7 @@ public class Status implements Serializable {
         bluetooth = (v & 0b10) > 0;
         location = (v & 0b100) > 0;
         airplane = (v & 0b1000) > 0;
+        charging = (v & 0b10000) > 0;
     }
 
     byte[] toBytes() {
@@ -72,7 +75,11 @@ public class Status implements Serializable {
         buffer.put(uptime);
         buffer.put(power);
         buffer.put(gsm);
-        buffer.put((byte)(0 | (wifi ? 0b1 : 0b0) | (bluetooth ? 0b10 : 0b00) | (location ? 0b100 : 0b000) | (airplane ? 0b1000 : 0b0000)));
+        buffer.put((byte)(0 | (wifi ? 0b1 : 0b0)
+                            | (bluetooth ? 0b10 : 0b00)
+                            | (location ? 0b100 : 0b000)
+                            | (airplane ? 0b1000 : 0b0000)
+                            | (charging ? 0b10000 : 0b00000)));
 
         return buffer.array();
     }
@@ -95,4 +102,15 @@ public class Status implements Serializable {
     boolean bluetooth = false;
     boolean location = false;
     boolean airplane = false;
+    boolean charging = false;
+
+
+
+    public static class Power {
+        public static boolean isConnected(Context context) {
+            Intent intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+            return plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+        }
+    }
 }

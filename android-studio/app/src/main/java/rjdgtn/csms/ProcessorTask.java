@@ -263,6 +263,7 @@ public class ProcessorTask implements Runnable {
         log("\tgsm: " + status.gsm + " " + status.getGsmLevelStrign());
         log("\tgps: " + status.location);
         log("\twifi: " + status.wifi);
+        log("\tcharging: " + status.charging);
         log("\tbluetooth: " + status.bluetooth);
     }
 
