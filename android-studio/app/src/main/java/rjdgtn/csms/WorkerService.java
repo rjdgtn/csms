@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
@@ -70,7 +71,7 @@ public class WorkerService extends Service {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "WRKR");
-        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+        getApplicationContext().sendBroadcast(intent);
     }
 
     public static final long launchTime = System.currentTimeMillis();
@@ -85,6 +86,7 @@ public class WorkerService extends Service {
     private Thread processorThread = null;
 
     private Timer timer = null;
+    private Timer batteryTimer = null;
 
     public WorkerService() {
 
@@ -94,6 +96,9 @@ public class WorkerService extends Service {
     public void onCreate() {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
         this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
+
+        batteryTimer = new Timer();
+        batteryTimer.schedule(new BatteryTask(), 1000,  15 * 60 * 1000);
 
         timer = new Timer();
         Calendar calendar = Calendar.getInstance();
@@ -214,5 +219,20 @@ public class WorkerService extends Service {
             }
         }
     };
+
+    class BatteryTask extends TimerTask {
+        public void run() {
+            IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+            Intent batteryStatus = getApplicationContext().registerReceiver(null, iFilter);
+
+            int level = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
+            int scale = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1) : -1;
+
+            float batteryPct = level / (float) scale;
+
+
+            log("battery:" + batteryPct);
+        }
+    }
 
 }
