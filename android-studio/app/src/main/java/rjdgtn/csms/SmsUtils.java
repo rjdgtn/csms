@@ -3,12 +3,16 @@ package rjdgtn.csms;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.Telephony;
 import com.klinker.android.send_message.*;
 
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SmsUtils  {
 //    public static class Sms {
@@ -111,5 +115,23 @@ public class SmsUtils  {
         }
 
         return smsId;
+    }
+
+    static void activateReceiver(Context context, boolean activate) {
+        if (smsMonitor == null) smsMonitor = new SMSMonitor();
+        if (activate) context.registerReceiver(smsMonitor, new IntentFilter("android.provider.Telephony.SMS_RECEIVED"));
+        else context.unregisterReceiver(smsMonitor);
+    }
+
+    static private SMSMonitor smsMonitor = null;
+
+    static public class SMSMonitor extends BroadcastReceiver {
+        private static final String ACTION = "android.provider.Telephony.SMS_RECEIVED";
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Intent intent2 = new Intent(context, WorkerService.class);
+            intent2.putExtra("code", "new_sms");
+            context.startService(intent2);
+        }
     }
 }

@@ -75,6 +75,7 @@ public class ProcessorTask implements Runnable {
     public void run() {
         log("start");
         try {
+            SmsUtils.activateReceiver(contex, true);
             while (true) {
                 if (!TransportTask.inQueue.isEmpty()) {
                     onRemoteCommand(TransportTask.inQueue.take());
@@ -87,12 +88,13 @@ public class ProcessorTask implements Runnable {
         } catch (Exception e) {
             log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+        } finally {
+            SmsUtils.activateReceiver(contex, false);
         }
 
     }
 
     private void sendToRemotePhone(byte[] bytes) throws InterruptedException, IOException {
-
         if (true) {
             TransportTask.outQueue.put(new OutRequest(bytes));
         } else {
@@ -112,6 +114,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("check_sms")) onLocalCheckSms(command);
         else if (code.equals("send_sms")) onLocalSendSms(command);
         else if (code.equals("get_sms")) onLocalGetSms(command);
+        else if (code.equals("new_sms")) onLocalNewSms(command);
 
         lastLocalCommand = command;
     }
@@ -131,6 +134,10 @@ public class ProcessorTask implements Runnable {
         if (code == SEND_SMS_ANSWER_COMMAND) onRemoteSendSmsAnswer(inputStream);
         if (code == GET_SMS_REQUEST_COMMAND) onRemoteGetSms(inputStream);
         if (code == GET_SMS_ANSWER_COMMAND) onRemoteGetSmsAnswer(inputStream);
+    }
+
+    private void onLocalNewSms(Bundle command) throws InterruptedException {
+        TransportTask.outQueue.put(new OutRequest("new_sms"));
     }
 
     private void onLocalWake(Bundle command) throws InterruptedException {

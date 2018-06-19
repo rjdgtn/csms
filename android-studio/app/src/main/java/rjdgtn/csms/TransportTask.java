@@ -88,6 +88,7 @@ public class TransportTask  implements Runnable {
     private char FAIL_SIGNAL = 'D';
     private char AWAKE_SIGNAL = '9';
     public static String RESTART_PATTERN = "BCBCBC";
+    public static String NEW_SMS_PATTERN = "159515951595151";
 
 
     private ReadTask readTask = null;
@@ -346,6 +347,13 @@ public class TransportTask  implements Runnable {
                             }
                             Thread.sleep(2000);
                             readTask.inQueue.clear();
+                            outQueue.take();
+                            log("finish send " + req.request);
+
+                        } else if (req.request == "new_sms") {
+                            log("start send " + req.request);
+                            sendTask.outQueue.put(NEW_SMS_PATTERN);
+                            waitForSilence(1000);
                             outQueue.take();
                             log("finish send " + req.request);
 
