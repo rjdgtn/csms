@@ -3,20 +3,29 @@ package rjdgtn.csms;
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Environment;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.util.Pair;
+import android.widget.TextView;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Map;
@@ -84,6 +93,7 @@ public class WorkerService extends Service {
     @Override
     public void onCreate() {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
+        this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
 
         timer = new Timer();
         Calendar calendar = Calendar.getInstance();
@@ -119,6 +129,7 @@ public class WorkerService extends Service {
         processorThread.start();
 
         MyPhoneStateListener.init(getApplicationContext());
+
     }
 
     @Override
@@ -138,6 +149,7 @@ public class WorkerService extends Service {
     @Override
     public void onDestroy() {
         log("destroy");
+        unregisterReceiver(logReceiver);
         System.exit(0);
 //        processorThread.interrupt();
 //        transportThread.interrupt();
@@ -177,5 +189,30 @@ public class WorkerService extends Service {
     }
 
 
+    // Handling the received Intents for the "my-integer" event
+    private BroadcastReceiver logReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Extract data included in the Intent
+            String log = intent.getStringExtra("log");
+            String channel = intent.getStringExtra("ch");
+            String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(System.currentTimeMillis()));
+
+            try {
+                File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/log.txt");
+                if (!file.exists()) {
+                    File directory = new File(Environment.getExternalStorageDirectory() + "/CSMS");
+                    directory.mkdirs();
+                    file.createNewFile();
+                }
+
+                FileWriter out = new FileWriter(file, true);
+                out.write(dateStr + " " + channel + ": " + log + "\n");
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
 }
