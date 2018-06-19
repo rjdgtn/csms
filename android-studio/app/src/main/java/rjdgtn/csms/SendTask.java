@@ -108,8 +108,9 @@ public class SendTask implements Runnable {
                                 boolean finished = encodeStep(buffer);
                                 int duration = buffer.length / (frequency / 1000);
                                 new VolumeCheckerTask(context, (int)(duration * 1.2));
+                                //new Thread(new VolumeCheckerTask(context, (int)(duration * 1.2))).start();
                                 if (audio != null) audio.write(buffer, 0, buffer.length);
-                                Thread.sleep((long)(duration*0.5));
+                                //Thread.sleep((long)(duration*0.5));
                                 if (finished) {
                                     break;
                                 }
