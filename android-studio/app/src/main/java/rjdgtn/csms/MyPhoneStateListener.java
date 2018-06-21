@@ -1,6 +1,7 @@
 package rjdgtn.csms;
 
 import android.content.Context;
+import android.content.Intent;
 import android.telephony.PhoneStateListener;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
@@ -12,8 +13,9 @@ public class MyPhoneStateListener extends PhoneStateListener {
     static protected MyPhoneStateListener signalListner = new MyPhoneStateListener();
     static protected MyPhoneStateListener serviceListner = new MyPhoneStateListener();
     static protected TelephonyManager telephonyManager = null;
-
-    static void init(Context context) {
+    static protected Context context = null;
+    static void init(Context c) {
+        context = c;
         telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(MyPhoneStateListener.signalListner, PhoneStateListener.LISTEN_SERVICE_STATE);
         telephonyManager.listen(MyPhoneStateListener.serviceListner, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
@@ -28,20 +30,21 @@ public class MyPhoneStateListener extends PhoneStateListener {
     public void onSignalStrengthsChanged(SignalStrength signalStrength) {
         super.onSignalStrengthsChanged(signalStrength);
         MyPhoneStateListener.signalStrength = (byte) signalStrength.getGsmSignalStrength();
-        Log.v("MY","signalStrength: " + MyPhoneStateListener.getSignalStrength() );
-        //signalStrength.
+        log(context, "signalStrength: " + MyPhoneStateListener.getSignalStrength());
     }
 
     @Override
     public void onServiceStateChanged (ServiceState serviceState) {
         super.onServiceStateChanged(serviceState);
         inService = (serviceState.getState() == ServiceState.STATE_IN_SERVICE);
-        Log.v("MY","signalStrength: " + MyPhoneStateListener.getSignalStrength() );
+        log(context, "signalStrength: " + MyPhoneStateListener.getSignalStrength());
     }
 
-//    @Override
-//    public void onSignalStrengthChanged(int asu) {
-//        MyPhoneStateListener.signalStrength = (byte)asu;
-//        Log.v("MY","signalStrength: " + MyPhoneStateListener.signalStrength );
-//    }
+    private static void log(Context context, String str) {
+        Log.d("MY STTS", str);
+        Intent intent = new Intent("csms_log");
+        intent.putExtra("log", str);
+        intent.putExtra("ch", "STTS");
+        context.sendBroadcast(intent);
+    }
 }

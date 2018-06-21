@@ -8,6 +8,7 @@ import android.media.MediaRecorder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.util.Calendar;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,87 +45,25 @@ public class ReadTask implements Runnable {
     }
 
     public static AtomicInteger bufferDuration = new AtomicInteger(350);
-    public static AtomicBoolean idleMode = new AtomicBoolean(false);
 
 //    public static int SHORT_little_endian_TO_big_endian(int i){
 //        return (((i>>8)&0xff)+((i << 8)&0xff00));
 //    }
     public void run() {
         log("run");
-        AudioRecord audioRecord = null;
         try {
-            int frequency = 8000;
-            int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;//CHANNEL_CONFIGURATION_MONO;
-            int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-
-            int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
-            int bufferShorts = bufferBytes / 2;
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes * 5);
-
-            short[] buffer = new short[bufferShorts * 2];
-            audioRecord.startRecording();
-
-            int dupCounter = 0;
-            int wpos = 0;
-            short[] decodeBuffer = null;
-            String pattern = "XxXxXx";
-
-            log("loop");
             while (true) {
-                int rpos = 0;
-                int rsz = audioRecord.read(buffer, 0, buffer.length);
+                readLoop();
 
-                if (rsz > 0) {
-                    int bufsz = bufferDuration.get() * 8;
-                    if (decodeBuffer == null || decodeBuffer.length != bufsz) {
-                        decodeBuffer = new short[bufsz];
-                        wpos = 0;
-                    }
-
-                    while (true) {
-                        int sz = min(bufsz - wpos, rsz);
-                        if (sz > 0) {
-                            System.arraycopy(buffer, rpos, decodeBuffer, wpos, sz);
-                            rpos += sz;
-                            wpos += sz;
-                            rsz -= sz;
-                        }
-
-                        if (wpos < bufsz) {
-                            break;
-                        }
-                        wpos = 0;
-                        char symbol = decode(decodeBuffer);
-                        //if (symbol != '\0') Log.v("MY READ", "detect "+symbol);
-
-                        if (prevSymbol != symbol) {
-                            if (prevSymbol != '\0' && prevSymbol != prevMeanSymbol) {
-                                log("put " + prevSymbol + " dup " + dupCounter);
-                                inQueue.put(new Character(prevSymbol));
-                                prevMeanSymbol = prevSymbol;
-
-                                pattern = pattern.substring(1) + prevSymbol;
-                                if (pattern.equals(TransportTask.RESTART_PATTERN)) {
-                                    log("detect pattern " + pattern);
-                                    throw new Exception();
-                                }
-                            }
-                            dupCounter = 1;
-                            prevSymbol = symbol;
-                        } else {
-                            dupCounter++;
-                        }
-                    }
-
+                Calendar calendar = Calendar.getInstance();
+                int curMin = calendar.get(calendar.MINUTE);
+                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/10.0)*10;
+                calendar.set(calendar.MINUTE, nextTenMinutes);
+                long wakeTime = calendar.getTime().getTime();
+                while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
+                    Thread.sleep(Math.min(1000, wakeTime - System.currentTimeMillis()));
                 }
-
-                if (idleMode.get()) {
-                    Thread.sleep(1000);
-                }
-
-                //Log.d("MY CSMS", "read");
             }
-
         } catch (Exception e) {
             log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
@@ -132,16 +71,81 @@ public class ReadTask implements Runnable {
 
         log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+    }
 
-//        }  catch (Exception e) {
-//            Log.d("MY CSMS", "read crash");
-//            if (audioRecord != null) {
-//                audioRecord.stop();
-//                audioRecord.release();
-//                audioRecord = null;
-//            }
-//        } finally {
-//            WorkerService.breakExec.set(true);
-//        }
+    void readLoop() throws Exception {
+        int frequency = 8000;
+        int channelConfiguration = AudioFormat.CHANNEL_IN_MONO;//CHANNEL_CONFIGURATION_MONO;
+        int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+        int bufferBytes = AudioRecord.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
+        int bufferShorts = bufferBytes / 2;
+        AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, frequency, channelConfiguration, audioEncoding, bufferBytes * 5);
+
+        short[] buffer = new short[bufferShorts * 2];
+        audioRecord.startRecording();
+
+        int dupCounter = 0;
+        int wpos = 0;
+        short[] decodeBuffer = null;
+        String pattern = "XxXxXx";
+
+        log("loop");
+        long startLoopTime = System.currentTimeMillis();
+        while (true) {
+            int rpos = 0;
+            int rsz = audioRecord.read(buffer, 0, buffer.length);
+
+            if (rsz > 0) {
+                int bufsz = bufferDuration.get() * 8;
+                if (decodeBuffer == null || decodeBuffer.length != bufsz) {
+                    decodeBuffer = new short[bufsz];
+                    wpos = 0;
+                }
+
+                while (true) {
+                    int sz = min(bufsz - wpos, rsz);
+                    if (sz > 0) {
+                        System.arraycopy(buffer, rpos, decodeBuffer, wpos, sz);
+                        rpos += sz;
+                        wpos += sz;
+                        rsz -= sz;
+                    }
+
+                    if (wpos < bufsz) {
+                        break;
+                    }
+                    wpos = 0;
+                    char symbol = decode(decodeBuffer);
+                    //if (symbol != '\0') Log.v("MY READ", "detect "+symbol);
+
+                    if (prevSymbol != symbol) {
+                        if (prevSymbol != '\0' && prevSymbol != prevMeanSymbol) {
+                            log("put " + prevSymbol + " dup " + dupCounter);
+                            inQueue.put(new Character(prevSymbol));
+                            prevMeanSymbol = prevSymbol;
+
+                            pattern = pattern.substring(1) + prevSymbol;
+                            if (pattern.equals(TransportTask.RESTART_PATTERN)) {
+                                log("detect pattern " + pattern);
+                                throw new Exception();
+                            }
+                        }
+                        dupCounter = 1;
+                        prevSymbol = symbol;
+                    } else {
+                        dupCounter++;
+                    }
+                }
+
+            }
+
+            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 5 * 1000) {
+                break;
+            }
+        }
+
+        audioRecord.stop();
+        log("stop");
     }
 }

@@ -69,7 +69,7 @@ public class LauncherService extends Service {
         startForeground(777, notification);
 
         timer = new Timer();
-        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 10000);
+        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 60*1000);
     }
 
 

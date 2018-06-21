@@ -251,8 +251,7 @@ public class TransportTask  implements Runnable {
                         if (state == State.IDLE) {
                             log("awake");
                             sendControlSignal(SUCCESS_SIGNAL);
-                            sendTask.idleMode.set(false);
-                            readTask.idleMode.set(false);
+                            WorkerService.idleMode.set(false);
                             setState(State.READ);
                         }
                     } else if (ch == SUCCESS_SIGNAL) {
@@ -416,13 +415,12 @@ public class TransportTask  implements Runnable {
                 }
 
                 if (state == State.READ && lastEventTime + 5 * 60 * 1000 < System.currentTimeMillis()) {
-                    sendTask.idleMode.set(true);
-                    readTask.idleMode.set(true);
+                    WorkerService.idleMode.set(true);
                     setState(State.IDLE);
+                    //readThread.interrupt();
                 }
                 if (state == State.IDLE && !outQueue.isEmpty()) {
-                    sendTask.idleMode.set(false);
-                    readTask.idleMode.set(false);
+                    WorkerService.idleMode.set(false);
                     setState(State.READ);
                 }
             }

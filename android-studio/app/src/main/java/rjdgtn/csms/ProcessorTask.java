@@ -83,7 +83,9 @@ public class ProcessorTask implements Runnable {
                     onLocalCommand(localCommands.take());
                 }
                 SmsUtils.update(contex);
-                Thread.sleep(500);
+
+                if (WorkerService.idleMode.get()) Thread.sleep(5000);
+                else Thread.sleep(500);
             }
         } catch (Exception e) {
             log("crash");

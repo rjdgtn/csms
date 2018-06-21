@@ -32,7 +32,6 @@ public class SendTask implements Runnable {
 
     public static AtomicInteger callDuration = new AtomicInteger(60);
     public static AtomicInteger spaceDuration = new AtomicInteger(50);
-    public static AtomicBoolean idleMode = new AtomicBoolean(false);
 
     public native void encodeInit(int frameSize, int callDur, int spaceDur);
     public native void encode(String str);
@@ -52,81 +51,13 @@ public class SendTask implements Runnable {
 
     public void run() {
         log("run");
-        boolean emulator = Build.FINGERPRINT.startsWith("generic");
-        AudioTrack audio = null;
         try {
-            int frequency = 8000;
-            int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
-            int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-
-            int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
-
-            if (!emulator) {
-                audio = new AudioTrack(AudioManager.STREAM_MUSIC,
-                        frequency,
-                        channelConfiguration, //2 channel
-                        audioEncoding, // 16-bit
-                        bufsize * 5,
-                        AudioTrack.MODE_STREAM);
-
-                audio.play();
-            } else {
-                log("!!!!!!fake send");
-            }
-            log("loop");
-            while (true) {
-                if (outQueue.isEmpty()) {
-                    Thread.sleep(idleMode.get() ? 100 : 2500);
-                    continue;
+            while(true) {
+                writeLoop();
+                while(WorkerService.idleMode.get()) {
+                    Thread.sleep(1000);
                 }
-                String in = outQueue.element();
-                if (!in.isEmpty()) {
-                    if (in.contains("sleep ")) {
-                        int duration = Integer.parseInt(in.substring(6));
-                        log("sleep "+duration);
-                        Thread.sleep(duration);
-                    } else if (in.contains("callDuration ")) {
-                        int duration = Integer.parseInt(in.substring(13));
-                        callDuration.set(duration);
-                        log( "callDuration "+ duration);
-                    } else if (in.contains("spaceDuration ")) {
-                        int duration = Integer.parseInt(in.substring(14));
-                        spaceDuration.set(duration);
-                        log("spaceDuration "+ duration);
-                    } else {
-//                        String[] inSplit =in.split("(?<=\\G.{10})");
-//                        for (String str : inSplit) {
-                        for (int i = 0; i < in.length(); i += 10) {
-                            String str = in.substring(i, Math.min(i + 10, in.length()));
-
-                            short[] buffer = new short[25];
-
-                            encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
-                            encode(str);
-                            log("start " + str);
-                            while (true) {
-                                boolean finished = encodeStep(buffer);
-                                int duration = buffer.length / (frequency / 1000);
-                                new VolumeCheckerTask(context, (int)(duration * 1.2));
-                                //new Thread(new VolumeCheckerTask(context, (int)(duration * 1.2))).start();
-                                if (audio != null) audio.write(buffer, 0, buffer.length);
-                                //Thread.sleep((long)(duration*0.5));
-                                if (finished) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        int dur = 1000;
-                        byte[] pause = new byte[dur * 8];
-                        if (audio != null) audio.write(pause, 0, pause.length);
-                        log("finish ");
-                        Thread.sleep(dur);
-                    }
-                }
-                outQueue.take();
             }
-
         } catch (Exception e) {
             log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
@@ -134,17 +65,89 @@ public class SendTask implements Runnable {
 
         log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+    }
 
-//        } catch (Exception e) {
-//            Log.d("MY CSMS", "send crash");
-//            if (audio != null) {
-//                audio.stop();
-//                audio.release();
-//                audio = null;
-//            }
-//        } finally {
-//            WorkerService.breakExec.set(true);
-//        }
+    void writeLoop() throws InterruptedException {
+        int frequency = 8000;
+        int channelConfiguration = AudioFormat.CHANNEL_OUT_MONO;//CHANNEL_CONFIGURATION_MONO;
+        int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+
+        int bufsize = AudioTrack.getMinBufferSize(frequency, channelConfiguration, audioEncoding);
+        boolean emulator = Build.FINGERPRINT.startsWith("generic");
+
+        AudioTrack audio = null;
+        if (!emulator) {
+            audio = new AudioTrack(AudioManager.STREAM_MUSIC,
+                    frequency,
+                    channelConfiguration, //2 channel
+                    audioEncoding, // 16-bit
+                    bufsize * 5,
+                    AudioTrack.MODE_STREAM);
+
+            audio.play();
+        } else {
+            log("!!!!!!fake send");
+        }
+        log("loop");
+        while (true) {
+            if (outQueue.isEmpty()) {
+                if (WorkerService.idleMode.get()) {
+                    break;
+                } else {
+                    Thread.sleep(100);
+                    continue;
+                }
+            }
+            String in = outQueue.element();
+            if (!in.isEmpty()) {
+                if (in.contains("sleep ")) {
+                    int duration = Integer.parseInt(in.substring(6));
+                    log("sleep "+duration);
+                    Thread.sleep(duration);
+                } else if (in.contains("callDuration ")) {
+                    int duration = Integer.parseInt(in.substring(13));
+                    callDuration.set(duration);
+                    log( "callDuration "+ duration);
+                } else if (in.contains("spaceDuration ")) {
+                    int duration = Integer.parseInt(in.substring(14));
+                    spaceDuration.set(duration);
+                    log("spaceDuration "+ duration);
+                } else {
+//                        String[] inSplit =in.split("(?<=\\G.{10})");
+//                        for (String str : inSplit) {
+                    for (int i = 0; i < in.length(); i += 10) {
+                        String str = in.substring(i, Math.min(i + 10, in.length()));
+
+                        short[] buffer = new short[25];
+
+                        encodeInit(buffer.length, callDuration.get(), spaceDuration.get());
+                        encode(str);
+                        log("start " + str);
+                        while (true) {
+                            boolean finished = encodeStep(buffer);
+                            int duration = buffer.length / (frequency / 1000);
+                            new VolumeCheckerTask(context, (int)(duration * 1.2));
+                            //new Thread(new VolumeCheckerTask(context, (int)(duration * 1.2))).start();
+                            if (audio != null) audio.write(buffer, 0, buffer.length);
+                            //Thread.sleep((long)(duration*0.5));
+                            if (finished) {
+                                break;
+                            }
+                        }
+                    }
+
+                    int dur = 1000;
+                    byte[] pause = new byte[dur * 8];
+                    if (audio != null) audio.write(pause, 0, pause.length);
+                    log("finish ");
+                    Thread.sleep(dur);
+                }
+            }
+            outQueue.take();
+        }
+
+        if (audio != null) audio.stop();
+        log("stop");
     }
 
     public class VolumeCheckerTask implements Runnable {

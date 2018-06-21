@@ -79,10 +79,10 @@ public class AirplaneMode {
     }
 
     private static void log(Context context, String str) {
-        Log.d("MY PRCR", str);
+        Log.d("MY STTS", str);
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
-        intent.putExtra("ch", "PRCR");
+        intent.putExtra("ch", "STTS");
         context.sendBroadcast(intent);
     }
 }

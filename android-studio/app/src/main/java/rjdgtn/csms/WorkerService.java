@@ -76,7 +76,7 @@ public class WorkerService extends Service {
 
     public static final long launchTime = System.currentTimeMillis();
 
-    public static AtomicBoolean breakExec;
+    public static AtomicBoolean idleMode = new AtomicBoolean(false);
 
     private CheckerTask checkerTask = null;
     private TransportTask transportTask = null;
@@ -111,7 +111,6 @@ public class WorkerService extends Service {
         log("create");
         super.onCreate();
 
-        breakExec = new AtomicBoolean(false);
 
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher_round)

@@ -56,7 +56,7 @@ public class CheckerTask implements Runnable {
                     wifiManager.setWifiEnabled(false);
                 }
 
-                Thread.sleep(10 * 1000);
+                Thread.sleep(10 * 60 * 1000);
             }
         } catch (Exception e) {
             log("crash");
