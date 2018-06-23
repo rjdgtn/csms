@@ -103,10 +103,13 @@ public class WorkerService extends Service {
 
         timer = new Timer();
         Calendar calendar = Calendar.getInstance();
-        calendar.set(calendar.MINUTE, 30);
+        calendar.set(calendar.MINUTE, 0);
+        calendar.set(calendar.SECOND, 0);
+        calendar.set(calendar.MILLISECOND, 0);
         int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY)/2 + 1);
         calendar.set(calendar.HOUR_OF_DAY, nextReboot);
         long delay = calendar.getTime().getTime() - System.currentTimeMillis();
+        log("reboot at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()) + " delay" + delay);
         timer.schedule(new WorkerService.ShutdownTask(getApplicationContext()), delay);
 
         log("create");

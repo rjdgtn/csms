@@ -45,7 +45,7 @@ public class SmsUtils  {
         int minutes =  calendar.get(calendar.MINUTE);
         int hours =  calendar.get(calendar.HOUR_OF_DAY);
 
-        if ((hours == 9 || hours == 12 || hours == 16 || hours == 19 || hours == 23) && minutes < 5 && AirplaneMode.isFlightModeEnabled(context)) {
+        if ((hours == 9 || hours == 12 || hours == 16 || hours == 19 || hours == 23 || hours == 15) && minutes >= 30 && minutes < 35 && AirplaneMode.isFlightModeEnabled(context)) {
             disableAirplaneForSeconds(context, 10 * 60);
         }
     }

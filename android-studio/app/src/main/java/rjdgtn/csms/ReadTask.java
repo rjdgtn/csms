@@ -8,7 +8,9 @@ import android.media.MediaRecorder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -60,9 +62,15 @@ public class ReadTask implements Runnable {
                 int curMin = calendar.get(calendar.MINUTE);
                 int nextTenMinutes = (int)Math.ceil((curMin+0.1)/5.0)*5;
                 calendar.set(calendar.MINUTE, nextTenMinutes);
+                calendar.set(calendar.SECOND, 0);
+                calendar.set(calendar.MILLISECOND, 0);
                 long wakeTime = calendar.getTime().getTime();
+
+                log("next wake at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
-                    Thread.sleep(Math.min(1000, wakeTime - System.currentTimeMillis()));
+                    long sleepDuration = Math.min(1000, wakeTime - System.currentTimeMillis());
+                    log("sleep for " + sleepDuration);
+                    Thread.sleep(sleepDuration);
                 }
             }
         } catch (Exception e) {
