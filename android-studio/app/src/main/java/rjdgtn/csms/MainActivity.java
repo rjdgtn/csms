@@ -243,6 +243,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
         } else if (itemName.equals("wake")) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "wake"); }});
+        } else if (itemName.equals("idle")) {
+            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "idle"); }});
         }
         return true;
     }

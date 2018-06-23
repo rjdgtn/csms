@@ -118,6 +118,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("send_sms")) onLocalSendSms(command);
         else if (code.equals("get_sms")) onLocalGetSms(command);
         else if (code.equals("new_sms")) onLocalNewSms(command);
+        else if (code.equals("idle")) onLocalIdle(command);
 
         lastLocalCommand = command;
     }
@@ -146,6 +147,11 @@ public class ProcessorTask implements Runnable {
     private void onLocalWake(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("wake"));
     }
+
+    private void onLocalIdle(Bundle command) throws InterruptedException {
+        TransportTask.outQueue.put(new OutRequest("idle"));
+    }
+
     private void onRemoteGetSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
         if (stream.available() == 0) {
             log("no new sms");

@@ -340,7 +340,7 @@ public class TransportTask  implements Runnable {
                                 Thread.sleep(100);
                             }
                             sendTask.outQueue.put("callDuration " + 4000);
-                            sendTask.outQueue.put(""+AWAKE_SIGNAL+"1");
+                            sendTask.outQueue.put("" + AWAKE_SIGNAL + "1");
                             sendTask.outQueue.put("callDuration " + prefs.signalDuration);
 
                             while (!sendTask.outQueue.isEmpty()) {
@@ -350,6 +350,9 @@ public class TransportTask  implements Runnable {
                             readTask.inQueue.clear();
                             outQueue.take();
                             log("finish send " + req.request);
+                        } else if (req.request == "idle") {
+                            lastEventTime = 1;
+                            outQueue.take();
 
                         } else if (req.request == "new_sms") {
                             log("start send " + req.request);
