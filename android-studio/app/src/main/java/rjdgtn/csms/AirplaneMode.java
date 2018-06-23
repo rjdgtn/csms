@@ -83,6 +83,7 @@ public class AirplaneMode {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "STTS");
+        intent.putExtra("tm", System.currentTimeMillis());
         context.sendBroadcast(intent);
     }
 }

@@ -71,6 +71,7 @@ public class WorkerService extends Service {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "WRKR");
+        intent.putExtra("tm", System.currentTimeMillis());
         getApplicationContext().sendBroadcast(intent);
     }
 
@@ -200,7 +201,9 @@ public class WorkerService extends Service {
             // Extract data included in the Intent
             String log = intent.getStringExtra("log");
             String channel = intent.getStringExtra("ch");
-            String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(System.currentTimeMillis()));
+            long timestamp = intent.getLongExtra("tm", 0);
+            if (timestamp == 0) timestamp = System.currentTimeMillis();
+            String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(timestamp));
 
             try {
                 File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/log.txt");

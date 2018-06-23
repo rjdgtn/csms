@@ -68,6 +68,7 @@ public class ProcessorTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "PRCR");
+        intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
     }
 

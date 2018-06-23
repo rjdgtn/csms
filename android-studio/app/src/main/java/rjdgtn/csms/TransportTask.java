@@ -167,6 +167,7 @@ public class TransportTask  implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPV");
+        intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
 
     }
@@ -175,6 +176,7 @@ public class TransportTask  implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "TRPT");
+        intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
     }
     private void onStartSend() {

@@ -46,6 +46,7 @@ public class SendTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "SEND");
+        intent.putExtra("tm", System.currentTimeMillis());
         context.sendBroadcast(intent);
     }
 

@@ -41,6 +41,7 @@ public class ReadTask implements Runnable {
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "READ");
+        intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
     }
 
@@ -57,7 +58,7 @@ public class ReadTask implements Runnable {
 
                 Calendar calendar = Calendar.getInstance();
                 int curMin = calendar.get(calendar.MINUTE);
-                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/10.0)*10;
+                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/5.0)*5;
                 calendar.set(calendar.MINUTE, nextTenMinutes);
                 long wakeTime = calendar.getTime().getTime();
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
@@ -140,7 +141,7 @@ public class ReadTask implements Runnable {
 
             }
 
-            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 5 * 1000) {
+            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 10 * 1000) {
                 break;
             }
         }
