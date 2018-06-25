@@ -5,9 +5,13 @@ import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -45,6 +49,33 @@ public class ReadTask implements Runnable {
         intent.putExtra("ch", "READ");
         intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
+
+        rcv(intent);
+
+    }
+
+    private void rcv(Intent intent) {
+        // Extract data included in the Intent
+        String log = intent.getStringExtra("log");
+        String channel = intent.getStringExtra("ch");
+        long timestamp = intent.getLongExtra("tm", 0);
+        if (timestamp == 0) timestamp = System.currentTimeMillis();
+        String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(timestamp));
+
+        try {
+            File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/log_READ.txt");
+            if (!file.exists()) {
+                File directory = new File(Environment.getExternalStorageDirectory() + "/CSMS");
+                directory.mkdirs();
+                file.createNewFile();
+            }
+
+            FileWriter out = new FileWriter(file, true);
+            out.write(dateStr + " " + channel + ": " + log + "\n");
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static AtomicInteger bufferDuration = new AtomicInteger(350);
