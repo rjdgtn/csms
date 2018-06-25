@@ -6,6 +6,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class LauncherService extends Service {
     private Timer timer = null;
+    private PowerManager.WakeLock wakeLock = null;
 
     public static boolean isRunning(Context context) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
@@ -61,6 +63,11 @@ public class LauncherService extends Service {
         Log.d("MY launcher", "create");
         super.onCreate();
 
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                "MyWakelockTag");
+        wakeLock.acquire();
+
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentTitle("CSMS")
@@ -78,6 +85,7 @@ public class LauncherService extends Service {
         WorkerService.stop(getApplicationContext());
         super.onDestroy();
         Log.d("MY launcher", "destroy");
+        wakeLock.release();
     }
 
     public IBinder onBind(Intent intent) {
