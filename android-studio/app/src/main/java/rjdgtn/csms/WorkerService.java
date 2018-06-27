@@ -122,6 +122,8 @@ public class WorkerService extends Service {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
         this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
 
+        AirplaneMode.setFlightMode(this, true);
+
         {
             Intent intent = new Intent(this, WorkerService.class);
             intent.setAction("battery");
@@ -151,11 +153,11 @@ public class WorkerService extends Service {
         }
 
         {
-            int[] hours = {9, 10, 12, 16, 19, 23};
+            int[] hours = {9, 12, 16, 19, 23};
             Calendar calendar = Calendar.getInstance();
             int curHour = calendar.get(Calendar.HOUR_OF_DAY);
             int curDay = calendar.get(Calendar.DAY_OF_YEAR);
-            calendar.set(Calendar.MINUTE, 40);
+            calendar.set(Calendar.MINUTE, 30);
             calendar.set(Calendar.SECOND, 0);
             calendar.set(Calendar.MILLISECOND, 0);
 
@@ -234,9 +236,8 @@ public class WorkerService extends Service {
         return START_NOT_STICKY;
     }
 
-    @Override
-    public void onDestroy() {
-        log("destroy");
+    protected void unperform() {
+        log("unperform");
         unregisterReceiver(logReceiver);
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -276,6 +277,12 @@ public class WorkerService extends Service {
             PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
             am.cancel(pIntent1);
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        unperform();
+        log("destroy");
 
         System.exit(0);
     }
@@ -294,6 +301,7 @@ public class WorkerService extends Service {
             log("uncaughtException :\n" + throwable.getMessage() + "\n" + errors.toString());
             Log.e("CRASH", throwable.getMessage());
             Log.e("CRASH", errors.toString());
+            unperform();
             System.exit(0);
         }
     }

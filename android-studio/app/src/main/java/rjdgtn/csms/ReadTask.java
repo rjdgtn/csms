@@ -70,17 +70,18 @@ public class ReadTask implements Runnable {
 
                 Calendar calendar = Calendar.getInstance();
                 int curMin = calendar.get(calendar.MINUTE);
-                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/5.0)*5;
+                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/10.0)*10;
                 calendar.set(calendar.MINUTE, nextTenMinutes);
                 calendar.set(calendar.SECOND, 0);
                 calendar.set(calendar.MILLISECOND, 0);
                 long wakeTime = calendar.getTime().getTime();
 
+                log("next wake at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
+
                 WorkerService.performWake(contex, wakeTime);
 
                 wakeLock.release();
 
-                log("next wake at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
                     long sleepDuration = Math.min(1000, wakeTime - System.currentTimeMillis());
                     log("sleep for " + sleepDuration);

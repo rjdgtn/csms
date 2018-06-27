@@ -77,7 +77,7 @@ public class LauncherService extends Service {
         PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, 60 * 1000, pIntent1);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, 5 * 60 * 1000, pIntent1);
 
 
     }
