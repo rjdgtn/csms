@@ -6,6 +6,7 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Environment;
+import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -49,33 +50,6 @@ public class ReadTask implements Runnable {
         intent.putExtra("ch", "READ");
         intent.putExtra("tm", System.currentTimeMillis());
         contex.sendBroadcast(intent);
-
-        rcv(intent);
-
-    }
-
-    private void rcv(Intent intent) {
-        // Extract data included in the Intent
-        String log = intent.getStringExtra("log");
-        String channel = intent.getStringExtra("ch");
-        long timestamp = intent.getLongExtra("tm", 0);
-        if (timestamp == 0) timestamp = System.currentTimeMillis();
-        String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(timestamp));
-
-        try {
-            File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/log_READ.txt");
-            if (!file.exists()) {
-                File directory = new File(Environment.getExternalStorageDirectory() + "/CSMS");
-                directory.mkdirs();
-                file.createNewFile();
-            }
-
-            FileWriter out = new FileWriter(file, true);
-            out.write(dateStr + " " + channel + ": " + log + "\n");
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public static AtomicInteger bufferDuration = new AtomicInteger(350);
@@ -86,7 +60,12 @@ public class ReadTask implements Runnable {
     public void run() {
         log("run");
         try {
+            PowerManager.WakeLock wakeLock = null;
+            PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "READ_WAKE_LOCK");
+
             while (true) {
+                wakeLock.acquire();
                 readLoop();
 
                 Calendar calendar = Calendar.getInstance();
@@ -96,6 +75,10 @@ public class ReadTask implements Runnable {
                 calendar.set(calendar.SECOND, 0);
                 calendar.set(calendar.MILLISECOND, 0);
                 long wakeTime = calendar.getTime().getTime();
+
+                WorkerService.performWake(contex, wakeTime);
+
+                wakeLock.release();
 
                 log("next wake at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {

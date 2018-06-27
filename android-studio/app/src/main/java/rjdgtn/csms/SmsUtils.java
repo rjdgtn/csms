@@ -15,19 +15,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SmsUtils  {
-//    public static class Sms {
-//        int id = 0;
-//        int kind = 0;
-//        long date = 0;
-//        String number = null;
-//        String text = null;
-//    }
+
 
     private static long enableAirplaneModeTime = 0;
 
     public static void disableAirplaneForSeconds(Context context, int duration) {
         AirplaneMode.setFlightMode(context, false);
-        enableAirplaneModeTime = Math.max(enableAirplaneModeTime, System.currentTimeMillis() + duration * 1000);
+        long returnAirplane = System.currentTimeMillis() + duration * 1000;
+        enableAirplaneModeTime = Math.max(enableAirplaneModeTime, returnAirplane);
+
+        WorkerService.performWake(context, returnAirplane);
     }
 
     public static void enableAirplane(Context context) {
@@ -41,13 +38,6 @@ public class SmsUtils  {
             AirplaneMode.setFlightMode(context, true);
         }
 
-        Calendar calendar = Calendar.getInstance();
-        int minutes =  calendar.get(calendar.MINUTE);
-        int hours =  calendar.get(calendar.HOUR_OF_DAY);
-
-        if ((hours == 9 || hours == 12 || hours == 16 || hours == 19 || hours == 23 || hours == 15) && minutes >= 30 && minutes < 35 && AirplaneMode.isFlightModeEnabled(context)) {
-            disableAirplaneForSeconds(context, 10 * 60);
-        }
     }
 
     public static Sms getMinInboxWithIndexGreater(Context context, int id) {

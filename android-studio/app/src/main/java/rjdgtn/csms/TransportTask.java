@@ -3,6 +3,7 @@ package rjdgtn.csms;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -233,6 +234,10 @@ public class TransportTask  implements Runnable {
             long resendCount = 0;
             long lastEventTime = System.currentTimeMillis();;
 
+            PowerManager.WakeLock wakeLock = null;
+            PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TRANSPORT_WAKE_LOCK");
+
             while (true) {
                 //Log.v("MY ", " - " + state + " " + lastEventTime + " " + System.currentTimeMillis());
                 if (state == State.READ) {
@@ -240,6 +245,13 @@ public class TransportTask  implements Runnable {
                 } else if (state == State.IDLE) {
                     Thread.sleep(2000);
                 }
+
+                if (state == State.IDLE && wakeLock.isHeld()) {
+                    wakeLock.release();
+                } else if (state != State.IDLE && !wakeLock.isHeld()) {
+                    wakeLock.acquire();
+                }
+
                 if (!readTask.inQueue.isEmpty() || !sendTask.outQueue.isEmpty() || !outQueue.isEmpty()) {
                     lastEventTime = System.currentTimeMillis();
                 }

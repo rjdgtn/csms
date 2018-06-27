@@ -10,6 +10,7 @@
             <item android:title="get_sms" />
             <item android:title="check_sms"></item>
             <item android:title="send_sms" />
+            <item android:title="check_sms_local" />
         </menu>
     </item>
     <item android:title="config_speed" />

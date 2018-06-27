@@ -1,7 +1,9 @@
 package rjdgtn.csms;
 
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,8 +11,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -50,29 +54,49 @@ public class WorkerService extends Service {
         }
         return false;
     }
+
     public static void start(Context context) {
         Intent intent = new Intent(context, WorkerService.class);
+        intent.setAction("start_service");
         context.startService(intent);
     }
+
     public static void stop(Context context) {
         Intent intent = new Intent(context, WorkerService.class);
+        intent.setAction("stop_service");
         context.stopService(intent);
     }
+
     public static void send(Context context, HashMap<String, String> add) {
         Intent intent = new Intent(context, WorkerService.class);
-        for ( Map.Entry<String, String> entry : add.entrySet() ) {
+        intent.setAction("command");
+        for (Map.Entry<String, String> entry : add.entrySet()) {
             intent.putExtra(entry.getKey(), entry.getValue());
         }
         context.startService(intent);
     }
 
-    private void log(String str) {
+    public static void performWake(Context context, long timestamp) {
+        Intent intent = new Intent(context, WorkerService.class);
+        intent.setAction("wake " + (++wakeCounter));
+        PendingIntent pIntent1 = PendingIntent.getService(context, 0, intent, 0);
+
+        AlarmManager am = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, timestamp, pIntent1);
+
+        log(context, "perform wake at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(timestamp));
+    }
+
+    private  void log(String str) {
+        log(this, str);
+    }
+    private static  void log(Context context, String str) {
         Log.d("MY WRKR", str);
         Intent intent = new Intent("csms_log");
         intent.putExtra("log", str);
         intent.putExtra("ch", "WRKR");
         intent.putExtra("tm", System.currentTimeMillis());
-        getApplicationContext().sendBroadcast(intent);
+        context.sendBroadcast(intent);
     }
 
     public static final long launchTime = System.currentTimeMillis();
@@ -86,8 +110,8 @@ public class WorkerService extends Service {
     private Thread transportThread = null;
     private Thread processorThread = null;
 
-    private Timer timer = null;
-    private Timer batteryTimer = null;
+    private static int wakeCounter = 0;
+    private static int airplaneCounter = 0;
 
     public WorkerService() {
 
@@ -98,19 +122,57 @@ public class WorkerService extends Service {
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
         this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
 
-        batteryTimer = new Timer();
-        batteryTimer.schedule(new BatteryTask(), 1000,  15 * 60 * 1000);
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("battery");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
 
-        timer = new Timer();
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(calendar.MINUTE, 0);
-        calendar.set(calendar.SECOND, 0);
-        calendar.set(calendar.MILLISECOND, 0);
-        int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY)/2 + 1);
-        calendar.set(calendar.HOUR_OF_DAY, nextReboot);
-        long delay = calendar.getTime().getTime() - System.currentTimeMillis();
-        log("reboot at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()) + " delay" + delay);
-        timer.schedule(new WorkerService.ShutdownTask(getApplicationContext()), delay);
+            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000,15 * 60 * 1000, pIntent1);
+        }
+
+        {
+            //timer = new Timer();
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(calendar.MINUTE, 30);
+            calendar.set(calendar.SECOND, 0);
+            calendar.set(calendar.MILLISECOND, 0);
+            int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY) / 2 + 1);
+            calendar.set(calendar.HOUR_OF_DAY, nextReboot);
+            log("perform reboot at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
+
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("stop");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+
+            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+            am.set(AlarmManager.RTC_WAKEUP, calendar.getTime().getTime(), pIntent1);
+
+        }
+
+        {
+            int[] hours = {9, 10, 12, 16, 19, 23};
+            Calendar calendar = Calendar.getInstance();
+            int curHour = calendar.get(Calendar.HOUR_OF_DAY);
+            int curDay = calendar.get(Calendar.DAY_OF_YEAR);
+            calendar.set(Calendar.MINUTE, 40);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+            for (int h : hours) {
+                Intent intent = new Intent(this, WorkerService.class);
+                intent.setAction("airplane " + (++airplaneCounter));
+                PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+
+                calendar.set(Calendar.DAY_OF_YEAR, curDay);
+                calendar.set(Calendar.HOUR_OF_DAY, h);
+                if ( calendar.getTime().getTime() < System.currentTimeMillis()) calendar.set(Calendar.DAY_OF_YEAR, curDay+1);
+                log("perform airplane disable at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
+
+                am.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTime().getTime(), 24 * 60 * 60 * 1000, pIntent1);
+            }
+        }
 
         log("create");
         super.onCreate();
@@ -142,15 +204,33 @@ public class WorkerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && intent.getExtras() != null) {
+        if (intent != null && intent.getExtras() != null && intent.getAction() != null) {
             try {
-                ProcessorTask.localCommands.put(intent.getExtras());
+                log("command " + intent.getAction());
+                if (intent.getAction().contains("wake")) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else if (intent.getAction().equals("battery")) {
+                    logBattary();
+                } else if (intent.getAction().equals("stop")) {
+                    stop(this);
+                } else if (intent.getAction().contains("airplane")) {
+                    Bundle b = new Bundle();
+                    b.putString("code", "check_sms_local");
+                    ProcessorTask.localCommands.put(b);
+                } else if (intent.getAction().equals("command") && intent.getExtras().getString("code") != null) {
+                    ProcessorTask.localCommands.put(intent.getExtras());
+                }
             } catch (Exception e) {
                 log("crash");
                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
             }
         }
         super.onStartCommand(intent, flags, startId);
+
         return START_NOT_STICKY;
     }
 
@@ -158,10 +238,46 @@ public class WorkerService extends Service {
     public void onDestroy() {
         log("destroy");
         unregisterReceiver(logReceiver);
+
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        for (int i = 0; i <= wakeCounter; i++) {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("wake " + i);
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("battery");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("stop");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("command");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+
+
+        for (int i = 0; i <= airplaneCounter; i++) {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("airplane " + (i));
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+
         System.exit(0);
-//        processorThread.interrupt();
-//        transportThread.interrupt();
-//        super.onDestroy();
     }
 
     @Override
@@ -182,19 +298,19 @@ public class WorkerService extends Service {
         }
     }
 
-    class ShutdownTask extends TimerTask {
-        Context context;
-        ShutdownTask(Context c) {
-            context = c;
-        }
-
-        @Override
-        public void run() {
-            stop(context);
-//            log("timeout shutdown");
-//            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
-        }
-    }
+//    class ShutdownTask extends TimerTask {
+//        Context context;
+//        ShutdownTask(Context c) {
+//            context = c;
+//        }
+//
+//        @Override
+//        public void run() {
+//            stop(context);
+////            log("timeout shutdown");
+////            Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+//        }
+//    }
 
 
     // Handling the received Intents for the "my-integer" event
@@ -209,7 +325,7 @@ public class WorkerService extends Service {
             String dateStr = new SimpleDateFormat("MM-dd HH:mm:ss").format(new Date(timestamp));
 
             try {
-                File file = new File(Environment.getExternalStorageDirectory()+ "/CSMS/log.txt");
+                File file = new File(Environment.getExternalStorageDirectory() + "/CSMS/log.txt");
                 if (!file.exists()) {
                     File directory = new File(Environment.getExternalStorageDirectory() + "/CSMS");
                     directory.mkdirs();
@@ -225,19 +341,18 @@ public class WorkerService extends Service {
         }
     };
 
-    class BatteryTask extends TimerTask {
-        public void run() {
-            IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-            Intent batteryStatus = getApplicationContext().registerReceiver(null, iFilter);
+    void logBattary() {
+        IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = getApplicationContext().registerReceiver(null, iFilter);
 
-            int level = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
-            int scale = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1) : -1;
+        int level = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
+        int scale = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1) : -1;
 
-            float batteryPct = level / (float) scale;
+        float batteryPct = level / (float) scale;
 
 
-            log("battery:" + batteryPct);
-        }
+        log("battery:" + batteryPct);
     }
+
 
 }

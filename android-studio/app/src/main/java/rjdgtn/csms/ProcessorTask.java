@@ -119,6 +119,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("get_sms")) onLocalGetSms(command);
         else if (code.equals("new_sms")) onLocalNewSms(command);
         else if (code.equals("idle")) onLocalIdle(command);
+        else if (code.equals("check_sms_local")) onLocalCheckSmsLocal(command);
 
         lastLocalCommand = command;
     }
@@ -138,6 +139,10 @@ public class ProcessorTask implements Runnable {
         if (code == SEND_SMS_ANSWER_COMMAND) onRemoteSendSmsAnswer(inputStream);
         if (code == GET_SMS_REQUEST_COMMAND) onRemoteGetSms(inputStream);
         if (code == GET_SMS_ANSWER_COMMAND) onRemoteGetSmsAnswer(inputStream);
+    }
+
+    private void onLocalCheckSmsLocal(Bundle command) throws InterruptedException {
+        SmsUtils.disableAirplaneForSeconds(contex, 5 * 60);
     }
 
     private void onLocalNewSms(Bundle command) throws InterruptedException {

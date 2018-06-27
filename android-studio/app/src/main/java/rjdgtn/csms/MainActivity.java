@@ -132,9 +132,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         final String itemName = item.getTitle().toString();
-        if (itemName.equals("reboot_remote") || itemName.equals("test")) {
-            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", itemName); }});
-        } else if (itemName.equals("echo")) {
+        if (itemName.equals("echo")) {
             showEchoEdit("echo", new StringCallback() {
                 @Override
                 public void on(final String str) {
@@ -175,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             popupMenu.inflate(R.menu.speed_config);
             for (int i = 0; i < TransportTask.signalDurations.length; i++) {
                 int dur = TransportTask.signalDurations[i];
-                popupMenu.getMenu().add(""+dur).setCheckable(true).setChecked(dur == curSignalDuration);
+                popupMenu.getMenu().add("" + dur).setCheckable(true).setChecked(dur == curSignalDuration);
             }
             popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 @Override
@@ -192,8 +190,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
-        } else if (itemName.equals("status")) {
-            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "status"); }});
         } else if (itemName.equals("check_sms")) {
             PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
             popupMenu.inflate(R.menu.check_duration);
@@ -241,11 +237,15 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                     }
                 }
             });
-        } else if (itemName.equals("wake")) {
-            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "wake"); }});
-        } else if (itemName.equals("idle")) {
-            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code", "idle"); }});
+        } else if (itemName.equals("wake") ||
+                itemName.equals("idle") ||
+                itemName.equals("check_sms_local") ||
+                itemName.equals("status") ||
+                itemName.equals("reboot_remote") ||
+                itemName.equals("test") ) {
+            WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code",itemName); }});
         }
+
         return true;
     }
 

@@ -1,7 +1,9 @@
 package rjdgtn.csms;
 
 import android.app.ActivityManager;
+import android.app.AlarmManager;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -18,9 +20,6 @@ import java.util.TimerTask;
 import static android.webkit.ConsoleMessage.MessageLevel.LOG;
 
 public class LauncherService extends Service {
-    private Timer timer = null;
-    private PowerManager.WakeLock wakeLock = null;
-
     public static boolean isRunning(Context context) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -38,6 +37,7 @@ public class LauncherService extends Service {
 
     public static void start(Context context) {
         Intent intent = new Intent(context, LauncherService.class);
+        intent.setAction("start_service");
         context.startService(intent);
 
         try{
@@ -49,6 +49,7 @@ public class LauncherService extends Service {
     }
     public static void stop(Context context) {
         Intent intent = new Intent(context, LauncherService.class);
+        intent.setAction("stop_service");
         context.stopService(intent);
 
         File file = new File(context.getFilesDir(), "autostart");
@@ -63,11 +64,6 @@ public class LauncherService extends Service {
         Log.d("MY launcher", "create");
         super.onCreate();
 
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                "MyWakelockTag");
-        wakeLock.acquire();
-
         Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentTitle("CSMS")
@@ -75,17 +71,31 @@ public class LauncherService extends Service {
         Notification notification = builder.build();
         startForeground(777, notification);
 
-        timer = new Timer();
-        timer.schedule(new CheckWorkerTask(getApplicationContext()), 1000, 60*1000);
+
+        Intent intent = new Intent(this, WorkerService.class);
+        intent.setAction("start");
+        PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, 60 * 1000, pIntent1);
+
+
     }
 
 
     public void onDestroy() {
-        timer.cancel();
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("start");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+
+            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+            am.cancel(pIntent1);
+
+        }
         WorkerService.stop(getApplicationContext());
         super.onDestroy();
         Log.d("MY launcher", "destroy");
-        wakeLock.release();
     }
 
     public IBinder onBind(Intent intent) {
@@ -93,21 +103,6 @@ public class LauncherService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    class CheckWorkerTask extends TimerTask {
-        Context context;
-        CheckWorkerTask(Context c) {
-            context = c;
-        }
-
-        @Override
-        public void run() {
-           // Log.v("MY CSMS", "check worker");
-            //if (!WorkerService.isRunning(context)) {
-                Log.v("MY LCHR", "start worker");
-                WorkerService.start(context);
-            //}
-        }
-    }
 }
 
 
