@@ -133,6 +133,15 @@ public class WorkerService extends Service {
             am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000,15 * 60 * 1000, pIntent1);
         }
 
+//        {
+//            Intent intent = new Intent(this, WorkerService.class);
+//            intent.setAction("reboot");
+//            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+//
+//            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+//            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000 * 60, pIntent1);
+//        }
+
         {
             //timer = new Timer();
             Calendar calendar = Calendar.getInstance();
@@ -223,6 +232,9 @@ public class WorkerService extends Service {
                     Bundle b = new Bundle();
                     b.putString("code", "check_sms_local");
                     ProcessorTask.localCommands.put(b);
+                } else if (intent.getAction().contains("reboot")) {
+                    Process proc = Runtime.getRuntime().exec(new String[] { "su", "-c", "reboot" });
+                    proc.waitFor();
                 } else if (intent.getAction().equals("command") && intent.getExtras().getString("code") != null) {
                     ProcessorTask.localCommands.put(intent.getExtras());
                 }
@@ -270,6 +282,12 @@ public class WorkerService extends Service {
             am.cancel(pIntent1);
         }
 
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("reboot");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
 
         for (int i = 0; i <= airplaneCounter; i++) {
             Intent intent = new Intent(this, WorkerService.class);
