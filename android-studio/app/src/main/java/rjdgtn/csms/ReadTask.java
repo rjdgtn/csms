@@ -59,8 +59,8 @@ public class ReadTask implements Runnable {
 //    }
     public void run() {
         log("run");
+        PowerManager.WakeLock wakeLock = null;
         try {
-            PowerManager.WakeLock wakeLock = null;
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "READ_WAKE_LOCK");
 
@@ -91,6 +91,8 @@ public class ReadTask implements Runnable {
         } catch (Exception e) {
             log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+        } finally {
+            wakeLock.release();
         }
 
         log("finish");

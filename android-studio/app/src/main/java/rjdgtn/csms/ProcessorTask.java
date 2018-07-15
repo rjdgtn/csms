@@ -99,7 +99,7 @@ public class ProcessorTask implements Runnable {
     }
 
     private void sendToRemotePhone(byte[] bytes) throws InterruptedException, IOException {
-        if (false) {
+        if (true) {
             TransportTask.outQueue.put(new OutRequest(bytes));
         } else {
             onRemoteCommand(bytes);

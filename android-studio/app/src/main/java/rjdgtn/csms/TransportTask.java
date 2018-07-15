@@ -214,6 +214,9 @@ public class TransportTask  implements Runnable {
 
         boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");
+
+        PowerManager.WakeLock wakeLock = null;
+
         try {
             readTask = new ReadTask(contex);
             sendTask = new SendTask(contex);
@@ -234,7 +237,6 @@ public class TransportTask  implements Runnable {
             long resendCount = 0;
             long lastEventTime = System.currentTimeMillis();;
 
-            PowerManager.WakeLock wakeLock = null;
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TRANSPORT_WAKE_LOCK");
 
@@ -445,6 +447,8 @@ public class TransportTask  implements Runnable {
         } catch (Exception e) {
             log("crash");
             Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+        } finally {
+            if (wakeLock != null) wakeLock.release();
         }
 
         log("finish");
