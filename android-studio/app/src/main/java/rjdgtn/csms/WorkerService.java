@@ -145,12 +145,12 @@ public class WorkerService extends Service {
         {
             //timer = new Timer();
             Calendar calendar = Calendar.getInstance();
-            calendar.set(calendar.MINUTE, 30);
+            calendar.set(calendar.MINUTE, 35);
             calendar.set(calendar.SECOND, 0);
             calendar.set(calendar.MILLISECOND, 0);
             int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY) / 2 + 1);
             calendar.set(calendar.HOUR_OF_DAY, nextReboot);
-            log("perform reboot at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
+            log("perform restart at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
 
             Intent intent = new Intent(this, WorkerService.class);
             intent.setAction("stop");
