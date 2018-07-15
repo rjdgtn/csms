@@ -242,6 +242,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 itemName.equals("check_sms_local") ||
                 itemName.equals("status") ||
                 itemName.equals("reboot_remote") ||
+                itemName.equals("restart_remote") ||
                 itemName.equals("test") ) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code",itemName); }});
         }

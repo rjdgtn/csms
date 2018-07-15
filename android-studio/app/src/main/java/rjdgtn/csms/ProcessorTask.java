@@ -51,6 +51,7 @@ public class ProcessorTask implements Runnable {
     private final byte GET_SMS_ANSWER_COMMAND = 88;
     private final byte SEND_SMS_REQUEST_COMMAND = 99;
     private final byte SEND_SMS_ANSWER_COMMAND = 111;
+    private final byte REBOOT_COMMAND = 122;
 
 
     public static final byte FAIL_COMMAND = 127;
@@ -98,7 +99,7 @@ public class ProcessorTask implements Runnable {
     }
 
     private void sendToRemotePhone(byte[] bytes) throws InterruptedException, IOException {
-        if (true) {
+        if (false) {
             TransportTask.outQueue.put(new OutRequest(bytes));
         } else {
             onRemoteCommand(bytes);
@@ -109,6 +110,7 @@ public class ProcessorTask implements Runnable {
         String code = command.getString("code");
         log("command " + code);
         if (code.equals("reboot_remote")) onLocalRebootRemote(command);
+        else if (code.equals("restart_remote")) onLocalRestartRemote(command);
         else if (code.equals("test")) onLocalTest(command);
         else if (code.equals("echo")) onLocalEcho(command);
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
@@ -139,6 +141,7 @@ public class ProcessorTask implements Runnable {
         if (code == SEND_SMS_ANSWER_COMMAND) onRemoteSendSmsAnswer(inputStream);
         if (code == GET_SMS_REQUEST_COMMAND) onRemoteGetSms(inputStream);
         if (code == GET_SMS_ANSWER_COMMAND) onRemoteGetSmsAnswer(inputStream);
+        if (code == REBOOT_COMMAND) onRemoteReboot(inputStream);
     }
 
     private void onLocalCheckSmsLocal(Bundle command) throws InterruptedException {
@@ -320,8 +323,14 @@ public class ProcessorTask implements Runnable {
         }
     }
 
-    private void onLocalRebootRemote(Bundle command) throws InterruptedException {
+    private void onLocalRestartRemote(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("reboot_remote"));
+    }
+
+    private void onLocalRebootRemote(Bundle command) throws InterruptedException, IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(REBOOT_COMMAND);
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onLocalTest(Bundle command) throws InterruptedException, IOException {
@@ -352,6 +361,12 @@ public class ProcessorTask implements Runnable {
             outputStream.write(msg.getBytes(ENCODING));
             sendToRemotePhone(outputStream.toByteArray());
         }
+    }
+
+    private void onRemoteReboot(ByteArrayInputStream stream) throws IOException, InterruptedException {
+        Runtime.getRuntime().exec(new String[] { "su", "-c", "reboot" });
+//        Process proc =
+//        proc.waitFor();
     }
 
     private String readString(ByteArrayInputStream stream, int length) throws IOException {

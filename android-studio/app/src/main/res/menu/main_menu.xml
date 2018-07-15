@@ -5,6 +5,7 @@
 
     <item android:title="wake" />
     <item android:title="status" />
+    <item android:title="config_speed" />
     <item android:title="sms_menu">
         <menu>
             <item android:title="get_sms" />
@@ -13,14 +14,14 @@
             <item android:title="check_sms_local" />
         </menu>
     </item>
-    <item android:title="config_speed" />
-    <item android:title="reboot_remote" />
     <item android:title="service_menu">
         <menu>
             <item android:title="echo" />
             <item android:title="test" />
             <item android:title="idle" />
             <item android:title="logs" />
+            <item android:title="restart_remote" />
+            <item android:title="reboot_remote" />
         </menu>
     </item>
 </menu>
