@@ -1,5 +1,6 @@
 package rjdgtn.csms;
 
+import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -8,12 +9,16 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.WindowManager;
 
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static android.content.Context.POWER_SERVICE;
 
 public class CheckerTask implements Runnable {
     Context context = null;
@@ -57,7 +62,11 @@ public class CheckerTask implements Runnable {
                     wifiManager.setWifiEnabled(false);
                 }
 
-                Thread.sleep(10 * 60 * 1000);
+                if (isInteractive() && !isRunning()) {
+                    Runtime.getRuntime().exec(new String[] { "su", "-c", "/system/bin/input keyevent 26" });
+                }
+
+                Thread.sleep( 60 * 1000);
             }
         } catch (Exception e) {
             log("crash");
@@ -66,5 +75,24 @@ public class CheckerTask implements Runnable {
 
         log("finish");
         Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), new Exception());
+    }
+
+    public boolean isRunning() {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+
+        List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
+
+        for (ActivityManager.RunningTaskInfo task : tasks) {
+            if (context.getPackageName().equalsIgnoreCase(task.baseActivity.getPackageName()))
+                return true;
+        }
+        return false;
+    }
+
+    public boolean isInteractive() {
+        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH
+                ? powerManager.isInteractive()
+                : powerManager.isScreenOn();
     }
 }
