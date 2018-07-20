@@ -21,9 +21,11 @@ import android.util.Log;
 import android.util.Pair;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
@@ -119,10 +121,14 @@ public class WorkerService extends Service {
 
     @Override
     public void onCreate() {
+        logBattary();
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
         this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
 
         AirplaneMode.setFlightMode(this, true);
+
+
+
 
         {
             Intent intent = new Intent(this, WorkerService.class);
@@ -344,6 +350,21 @@ public class WorkerService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
+
+//            StringBuilder wakeLocks = new StringBuilder();
+//            try {
+//                // Run the command
+//                Process process = Runtime.getRuntime().exec(new String[] { "su", "-c", "dumpsys power | grep WAKE_LOCK" });
+//                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//
+//                // Grab the results
+//                String line;
+//                while ((line = bufferedReader.readLine()) != null) {
+//                    wakeLocks.append(line.split("[']+")[1] + "\n");
+//                }
+//
+//            } catch (IOException e) { }
+
             String log = intent.getStringExtra("log");
             String channel = intent.getStringExtra("ch");
             long timestamp = intent.getLongExtra("tm", 0);
@@ -359,6 +380,8 @@ public class WorkerService extends Service {
                 }
 
                 FileWriter out = new FileWriter(file, true);
+//                out.write(wakeLocks.toString());
+
                 out.write(dateStr + " " + channel + ": " + log + "\n");
                 out.close();
             } catch (IOException e) {
@@ -376,8 +399,16 @@ public class WorkerService extends Service {
 
         float batteryPct = level / (float) scale;
 
+        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL;
 
-        log("battery:" + batteryPct);
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        boolean screen = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH
+                ? powerManager.isInteractive()
+                : powerManager.isScreenOn();
+
+        log("battery:" + batteryPct + (isCharging ? " charging" : "") + (screen ? " screen" : "" ));
     }
 
 
