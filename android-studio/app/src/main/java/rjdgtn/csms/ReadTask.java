@@ -60,6 +60,7 @@ public class ReadTask implements Runnable {
     public void run() {
         log("run");
         PowerManager.WakeLock wakeLock = null;
+        boolean led = false;
         try {
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "READ_WAKE_LOCK");
@@ -83,6 +84,10 @@ public class ReadTask implements Runnable {
                 wakeLock.release();
 
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
+                    led = !led;
+                    if (led) Runtime.getRuntime().exec(new String[] { "su", "-c", "echo 5 > /sys/class/leds/led_b/brightness" });
+                    else Runtime.getRuntime().exec(new String[] { "su", "-c", "echo 0 > /sys/class/leds/led_b/brightness" });
+
                     long sleepDuration = Math.min(1000, wakeTime - System.currentTimeMillis());
                     log("sleep for " + sleepDuration);
                     Thread.sleep(sleepDuration);
