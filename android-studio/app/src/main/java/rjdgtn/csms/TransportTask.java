@@ -286,6 +286,7 @@ public class TransportTask  implements Runnable {
                         }
                     } else if (ch >= '0' && ch <= '8' || ch == '#' || ch == 'D' || ch == 'C' || ch == 'B' || ch == 'A') {
                         if (state == State.READ) {
+                            if (ch == '#') inMessage = "";
                             inMessage += ch;
                             log("in: " + inMessage);
                         }
@@ -353,9 +354,11 @@ public class TransportTask  implements Runnable {
                             while (!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
                             }
-                            sendTask.outQueue.put("callDuration " + 4000);
-                            sendTask.outQueue.put("" + AWAKE_SIGNAL + "1");
+                            sendTask.outQueue.put("callDuration " + 1000);
+                            sendTask.outQueue.put("spaceDuration " + 250);
+                            sendTask.outQueue.put("1" + AWAKE_SIGNAL + "1" + AWAKE_SIGNAL + "1" + AWAKE_SIGNAL + "1");
                             sendTask.outQueue.put("callDuration " + prefs.signalDuration);
+                            sendTask.outQueue.put("spaceDuration " + prefs.spaceDuration);
 
                             while (!sendTask.outQueue.isEmpty()) {
                                 Thread.sleep(100);
@@ -434,6 +437,8 @@ public class TransportTask  implements Runnable {
                 }
 
                 if (state == State.READ && lastEventTime + 5 * 60 * 1000 < System.currentTimeMillis()) {
+                    setCallDuration((short)315);
+                    sleep(50);
                     WorkerService.idleMode.set(true);
                     setState(State.IDLE);
                     //readThread.interrupt();

@@ -41,6 +41,9 @@ import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static android.os.BatteryManager.BATTERY_PLUGGED_AC;
+import static android.os.BatteryManager.BATTERY_PLUGGED_USB;
+
 public class WorkerService extends Service {
 
     static {
@@ -124,6 +127,11 @@ public class WorkerService extends Service {
         logBattary();
         Thread.setDefaultUncaughtExceptionHandler(new TryMe());
         this.registerReceiver(logReceiver, new IntentFilter("csms_log"));
+
+        IntentFilter chargeFilter = new IntentFilter();
+        chargeFilter.addAction("android.intent.action.ACTION_POWER_CONNECTED");
+        chargeFilter.addAction("android.intent.action.ACTION_POWER_DISCONNECTED");
+        this.registerReceiver(chargeReceiver, chargeFilter);
 
         AirplaneMode.setFlightMode(this, true);
 
@@ -239,8 +247,12 @@ public class WorkerService extends Service {
                     b.putString("code", "check_sms_local");
                     ProcessorTask.localCommands.put(b);
                 } else if (intent.getAction().contains("reboot")) {
-                    Process proc = Runtime.getRuntime().exec(new String[] { "su", "-c", "reboot" });
-                    proc.waitFor();
+                    try {
+                        Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
+                        proc.waitFor();
+                    } catch (Exception e) {
+
+                    }
                 } else if (intent.getAction().equals("command") && intent.getExtras().getString("code") != null) {
                     ProcessorTask.localCommands.put(intent.getExtras());
                 }
@@ -257,6 +269,7 @@ public class WorkerService extends Service {
     protected void unperform() {
         log("unperform");
         unregisterReceiver(logReceiver);
+        unregisterReceiver(chargeReceiver);
 
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
 
@@ -387,6 +400,14 @@ public class WorkerService extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    };
+
+    private BroadcastReceiver chargeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            logBattary();
         }
     };
 

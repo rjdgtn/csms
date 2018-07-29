@@ -85,12 +85,17 @@ public class ReadTask implements Runnable {
 
                 while (WorkerService.idleMode.get() && wakeTime > System.currentTimeMillis()) {
                     led = !led;
-                    if (led) Runtime.getRuntime().exec(new String[] { "su", "-c", "echo 5 > /sys/class/leds/led_b/brightness" });
-                    else Runtime.getRuntime().exec(new String[] { "su", "-c", "echo 0 > /sys/class/leds/led_b/brightness" });
 
+                    try {
+                        if (led) Runtime.getRuntime().exec(new String[]{"su", "-c", "echo 5 > /sys/class/leds/led_b/brightness"});
+                        else Runtime.getRuntime().exec(new String[]{"su", "-c", "echo 0 > /sys/class/leds/led_b/brightness"});
+                    } catch (Exception e) {
+
+                    }
                     long sleepDuration = Math.min(1000, wakeTime - System.currentTimeMillis());
                     log("sleep for " + sleepDuration);
-                    Thread.sleep(sleepDuration);
+                    if (sleepDuration > 0) Thread.sleep(sleepDuration);
+
                 }
             }
         } catch (Exception e) {
@@ -171,7 +176,7 @@ public class ReadTask implements Runnable {
 
             }
 
-            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 10 * 1000) {
+            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 15 * 1000) {
                 break;
             }
         }

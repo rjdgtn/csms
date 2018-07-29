@@ -23,6 +23,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewDebug;
+import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -50,6 +51,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         DtmfPacking.pack(new byte[]{1,2,3,4,5});
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);

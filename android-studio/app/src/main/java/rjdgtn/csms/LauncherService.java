@@ -80,6 +80,8 @@ public class LauncherService extends Service {
         am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, 5 * 60 * 1000, pIntent1);
 
 
+        WorkerService.start(getApplicationContext());
+
     }
 
 

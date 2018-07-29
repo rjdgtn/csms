@@ -364,9 +364,11 @@ public class ProcessorTask implements Runnable {
     }
 
     private void onRemoteReboot(ByteArrayInputStream stream) throws IOException, InterruptedException {
-        Runtime.getRuntime().exec(new String[] { "su", "-c", "reboot" });
-//        Process proc =
-//        proc.waitFor();
+        try {
+            Runtime.getRuntime().exec(new String[]{"su", "-c", "reboot"});
+        } catch (Exception e) {
+
+        }
     }
 
     private String readString(ByteArrayInputStream stream, int length) throws IOException {

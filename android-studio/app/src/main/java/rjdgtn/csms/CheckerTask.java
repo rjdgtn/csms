@@ -62,11 +62,17 @@ public class CheckerTask implements Runnable {
                     wifiManager.setWifiEnabled(false);
                 }
 
-                if (isInteractive() && !isRunning()) {
-                    Runtime.getRuntime().exec(new String[] { "su", "-c", "/system/bin/input keyevent 26" });
+                for (int i = 0; i < 10; i++) {
+                    if (isInteractive() && !isRunning()) {
+                        try {
+                            Runtime.getRuntime().exec(new String[]{"su", "-c", "/system/bin/input keyevent 26"});
+                        } catch (Exception e) {
+
+                        }
+                    }
+                    Thread.sleep( 10 * 1000);
                 }
 
-                Thread.sleep( 60 * 1000);
             }
         } catch (Exception e) {
             log("crash");
