@@ -144,7 +144,7 @@ public class WorkerService extends Service {
             PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
 
             AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000,15 * 60 * 1000, pIntent1);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+1000,60 * 60 * 1000, pIntent1);
         }
 
 //        {
@@ -162,7 +162,7 @@ public class WorkerService extends Service {
             calendar.set(calendar.MINUTE, 35);
             calendar.set(calendar.SECOND, 0);
             calendar.set(calendar.MILLISECOND, 0);
-            int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY) / 2 + 1);
+            int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY) / 4 + 1);
             calendar.set(calendar.HOUR_OF_DAY, nextReboot);
             log("perform restart at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
 
