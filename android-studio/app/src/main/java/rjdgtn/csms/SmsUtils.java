@@ -120,6 +120,7 @@ public class SmsUtils  {
         @Override
         public void onReceive(Context context, Intent intent) {
             Intent intent2 = new Intent(context, WorkerService.class);
+            intent2.setAction("command");
             intent2.putExtra("code", "new_sms");
             context.startService(intent2);
         }
