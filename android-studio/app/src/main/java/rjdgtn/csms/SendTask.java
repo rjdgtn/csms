@@ -157,7 +157,7 @@ public class SendTask implements Runnable {
         long workUntil = 0;
         VolumeCheckerTask(Context context, long duration) {
             am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            targetVolume = (int)(am.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * 0.7);
+            targetVolume = (int)(am.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * 0.9);
 
             workUntil = System.currentTimeMillis() + duration;
 
