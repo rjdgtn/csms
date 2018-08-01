@@ -43,13 +43,16 @@ public class CheckerTask implements Runnable {
             while(true) {
 
                 AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-                am.setStreamVolume(AudioManager.STREAM_RING, 0 ,0);
+               // am.setStreamVolume(AudioManager.STREAM_RING, 0 ,0);
                 am.setStreamVolume(AudioManager.STREAM_DTMF, 0 ,0);
                 //am.setStreamVolume(AudioManager.STREAM_ACCESSIBILITY, 0 ,0);
                 am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0 ,0);
                 am.setStreamVolume(AudioManager.STREAM_ALARM, 0 ,0);
                 am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 0 ,0);
                 am.setStreamVolume(AudioManager.STREAM_SYSTEM, 0 ,0);
+                if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
+                    am.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+                }
 
 
                 BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
