@@ -162,7 +162,7 @@ public class WorkerService extends Service {
             calendar.set(calendar.MINUTE, 35);
             calendar.set(calendar.SECOND, 0);
             calendar.set(calendar.MILLISECOND, 0);
-            int nextReboot = 2 * (calendar.get(calendar.HOUR_OF_DAY) / 4 + 1);
+            int nextReboot = 4 * (calendar.get(calendar.HOUR_OF_DAY) / 4 + 1);
             calendar.set(calendar.HOUR_OF_DAY, nextReboot);
             log("perform restart at " + new SimpleDateFormat("MM-dd HH:mm:ss").format(calendar.getTime()));
 
