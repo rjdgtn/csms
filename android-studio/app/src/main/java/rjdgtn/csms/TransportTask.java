@@ -198,6 +198,11 @@ public class TransportTask  implements Runnable {
     }
 
     public void run() {
+//        {
+//            String msg = "#0370761401306416427405143820651602016512010*";
+//            //           "#0383741438306861527017145030653602016706276*"
+//            DtmfPacking.unpackWithCheck(msg);
+//        }
 //        String packed = DtmfPacking.packWithCheck(new byte[]{1, 0,1,2,3,4,5,6,7,8,9});
 //        byte[] unp = DtmfPacking.unpackWithCheck(packed);
 //
@@ -207,10 +212,10 @@ public class TransportTask  implements Runnable {
 //        byte[] pack2 = DtmfPacking.unpackWithCheck(s[2]);
        // DtmfPacking.mergeBytesQueue(pack1, pack2);
 
-        Queue<byte[]> q = new LinkedList<byte[]>();
-        q.add(new byte[]{1,0,1,2,  3,4,5});
-        q.add(new byte[]{6,7,8,9,-34,0,0});
-        byte[] d = DtmfPacking.multiunpack(q);
+//        Queue<byte[]> q = new LinkedList<byte[]>();
+//        q.add(new byte[]{1,0,1,2,  3,4,5});
+//        q.add(new byte[]{6,7,8,9,-34,0,0});
+//        byte[] d = DtmfPacking.multiunpack(q);
 
         boolean emulator = Build.FINGERPRINT.startsWith("generic");
         log("run");

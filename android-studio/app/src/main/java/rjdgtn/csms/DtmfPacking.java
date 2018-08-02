@@ -176,7 +176,12 @@ public class DtmfPacking {
 
         //if (checkSum != 0) return null;
 
-        return res.toByteArray();
+        byte[] a = res.toByteArray();
+
+        byte[] b = new byte[meanBitsNum/8];
+        Arrays.fill(b, (byte)0);
+        System.arraycopy(a, 0, b, 0, a.length);
+        return b;
     }
 
 
