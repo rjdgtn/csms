@@ -1,5 +1,7 @@
 package rjdgtn.csms;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -273,9 +275,19 @@ public class TransportTask  implements Runnable {
                     if (ch == AWAKE_SIGNAL) {
                         if (state == State.IDLE) {
                             log("awake");
-                            sendControlSignal(FAIL_SIGNAL);
-                            WorkerService.idleMode.set(false);
-                            setState(State.READ);
+                            //WorkerService.idleMode.set(false);
+
+                            Intent intent = new Intent(contex, WorkerService.class);
+                            intent.setAction("start");
+                            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+
+                            AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
+                            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2500, pIntent1);
+
+                            WorkerService.stop(contex);
+//                            waitForSilence(2000);
+//                            sendControlSignal(FAIL_SIGNAL);
+//                            setState(State.READ);
                         }
                     } else if (ch == SUCCESS_SIGNAL) {
                         if (state == State.WAIT_FOR_CONFIRM || state == State.SENDING) {
