@@ -278,7 +278,7 @@ public class TransportTask  implements Runnable {
                             //WorkerService.idleMode.set(false);
 
                             Intent intent = new Intent(contex, WorkerService.class);
-                            intent.setAction("start");
+                            intent.setAction("start after awake");
                             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
 
                             AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
