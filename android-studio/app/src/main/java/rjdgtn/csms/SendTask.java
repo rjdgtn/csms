@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 public class SendTask implements Runnable {
-    public LinkedBlockingQueue<String> outQueue;
+    public static LinkedBlockingQueue<String> outQueue;
     Context context = null;
 
     public SendTask(Context context) {
@@ -55,7 +55,7 @@ public class SendTask implements Runnable {
         try {
             while(true) {
                 writeLoop();
-                while(WorkerService.idleMode.get()) {
+                while(WorkerService.idleMode.get() && outQueue.isEmpty()) {
                     Thread.sleep(1000);
                 }
             }

@@ -242,12 +242,12 @@ public class TransportTask  implements Runnable {
             String[] outMessages = null;
             long waitForConfimColdown = 0;
             long resendCount = 0;
-            long lastEventTime = System.currentTimeMillis();;
+            long lastEventTime = System.currentTimeMillis();
 
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TRANSPORT_WAKE_LOCK");
 
-            sendControlSignal(FAIL_SIGNAL);
+            //sendControlSignal(FAIL_SIGNAL);
 
             while (true) {
                 //Log.v("MY ", " - " + state + " " + lastEventTime + " " + System.currentTimeMillis());

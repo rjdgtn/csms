@@ -66,6 +66,7 @@ public class ReadTask implements Runnable {
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
 
             while (true) {
+                SendTask.outQueue.put("D9");
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "READ_WAKE_LOCK " + i);
                 wakeLock.acquire();
                 readLoop();
