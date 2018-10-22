@@ -176,7 +176,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             });
 
             popupMenu.show();
-        } else if (itemName.equals("config_speed")) {
+        } else if (itemName.equals("config_speed") || itemName.equals("config_speed_local")) {
+            final boolean local = itemName.equals("config_speed_local");
             PopupMenu popupMenu = new PopupMenu(this, findViewById(R.id.switch1));
             popupMenu.inflate(R.menu.speed_config);
             for (int i = 0; i < TransportTask.signalDurations.length; i++) {
@@ -190,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 //                    else logChannels.add(item.getTitle().toString());
                     WorkerService.send(getApplicationContext()
                             , new HashMap<String, String>() {{
-                                put("code", "config_speed");
+                                put("code", (local ? "config_speed_local" : "config_speed"));
                                 put("value", item.getTitle().toString());
                             }});
                     return true;

@@ -16,6 +16,7 @@
     </item>
     <item android:title="service_menu">
         <menu>
+            <item android:title="config_speed_local" />
             <item android:title="echo" />
             <item android:title="test" />
             <item android:title="idle" />

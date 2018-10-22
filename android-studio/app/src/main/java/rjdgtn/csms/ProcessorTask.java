@@ -114,6 +114,7 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("test")) onLocalTest(command);
         else if (code.equals("echo")) onLocalEcho(command);
         else if (code.equals("config_speed")) onLocalConfigSpeed(command);
+        else if (code.equals("config_speed_local")) onLocalConfigSpeedLocal(command);
         else if (code.equals("status")) onLocalStatus(command);
         else if (code.equals("wake")) onLocalWake(command);
         else if (code.equals("check_sms")) onLocalCheckSms(command);
@@ -321,6 +322,12 @@ public class ProcessorTask implements Runnable {
                 TransportTask.outQueue.put(new OutRequest("config_speed", duration));
             }
         }
+    }
+
+    private void onLocalConfigSpeedLocal(Bundle command) throws InterruptedException {
+        int duration = Integer.parseInt(command.getString("value"));
+        TransportTask.outQueue.put(new OutRequest("config_speed", duration));
+
     }
 
     private void onLocalRestartRemote(Bundle command) throws InterruptedException {
