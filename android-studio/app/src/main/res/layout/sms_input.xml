@@ -5,8 +5,8 @@
     android:layout_height="match_parent">
 
     <LinearLayout
-        android:layout_width="368dp"
-        android:layout_height="270dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         tools:layout_editor_absoluteX="8dp"
         tools:layout_editor_absoluteY="8dp">
@@ -34,11 +34,11 @@
         <EditText
             android:id="@+id/editText7"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:baselineAligned="false"
             android:ems="10"
             android:gravity="top"
-            android:inputType="textShortMessage"
+            android:inputType="textMultiLine"
             android:singleLine="false" />
 
     </LinearLayout>
