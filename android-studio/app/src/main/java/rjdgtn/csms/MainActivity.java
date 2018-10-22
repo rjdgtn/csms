@@ -8,9 +8,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.ContactsContract;
 import android.provider.Telephony;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
@@ -43,8 +45,10 @@ import java.util.TreeSet;
 import android.util.Log;
 import java.lang.reflect.Method;
 
+
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener  {
 
+    static final int PICK_CONTACT_FOR_SMS_REQUEST = 1;  // The request code
     // Used to load the 'native-lib' library on application startup.
     TreeSet<String> logChannels = new TreeSet<String>();
     short curSignalDuration = 0;
@@ -211,23 +215,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
             popupMenu.show();
         } else if (itemName.equals("send_sms")) {
-            showSmsEdit("sms", new SmsInputCallback() {
-                @Override
-                public void on(final String number, final String text) {
-                    if (number.isEmpty()) {
-                        Toast.makeText(getBaseContext(), "no number",Toast.LENGTH_SHORT).show();
-                    } else if (text.isEmpty()) {
-                        Toast.makeText(getBaseContext(), "no text",Toast.LENGTH_SHORT).show();
-                    } else {
-                        WorkerService.send(getApplicationContext()
-                                , new HashMap<String, String>() {{
-                                    put("code", "send_sms");
-                                    put("number", number);
-                                    put("text", text);
-                                }});
-                    }
-                }
-            });
+            Intent pickContact = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+            pickContact.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+            startActivityForResult(pickContact, PICK_CONTACT_FOR_SMS_REQUEST);
         } else if (itemName.equals("get_sms")) {
             showEchoEdit(""+(SmsStorage.getMaxSmsInboxId()+1), new StringCallback() {
                 @Override
@@ -271,6 +261,36 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 //        }
 //        return false;
 //    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (data == null) return;
+        Uri contactData = data.getData();
+        Cursor c = getContentResolver().query(contactData, null, null, null, null);
+        if (c.moveToFirst()) {
+            int phoneIndex = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+            String num = c.getString(phoneIndex);
+
+            showSmsEdit("sms", num, new SmsInputCallback() {
+                @Override
+                public void on(final String number, final String text) {
+                    if (number.isEmpty()) {
+                        Toast.makeText(getBaseContext(), "no number",Toast.LENGTH_SHORT).show();
+                    } else if (text.isEmpty()) {
+                        Toast.makeText(getBaseContext(), "no text",Toast.LENGTH_SHORT).show();
+                    } else {
+                        WorkerService.send(getApplicationContext()
+                                , new HashMap<String, String>() {{
+                                    put("code", "send_sms");
+                                    put("number", number);
+                                    put("text", text);
+                                }});
+                    }
+                }
+            });
+
+            //Toast.makeText(MainActivity.this, "Number=" + num, Toast.LENGTH_LONG).show();
+        }
+    }
 
     public void onUpdate() {
         ((CheckBox)findViewById(R.id.checkbox1)).setChecked(WorkerService.isRunning(getApplicationContext()));
@@ -363,12 +383,12 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     interface SmsInputCallback {
         public void on(String number, String text);
     }
-    protected void showSmsEdit(String title, final SmsInputCallback okClick ) {
+    protected void showSmsEdit(String title, String number, final SmsInputCallback okClick ) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title);
         LayoutInflater inflater = this.getLayoutInflater();
         final View dialogView = inflater.inflate(R.layout.sms_input, null);
-
+        ((EditText)dialogView.findViewById(R.id.editText6)).setText(number);
         builder.setView(dialogView);
 
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
