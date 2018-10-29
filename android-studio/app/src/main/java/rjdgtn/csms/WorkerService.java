@@ -253,7 +253,10 @@ public class WorkerService extends Service {
                     } catch (Exception e) {
 
                     }
-                } else if (intent.getAction().equals("command") && intent.getExtras().getString("code") != null) {
+                } else if ((intent.getAction().equals("command") ||
+                            intent.getAction().equals("ring") ||
+                            intent.getAction().equals("ringup_stop"))
+                        && intent.getExtras().getString("code") != null) {
                     ProcessorTask.localCommands.put(intent.getExtras());
                 }
             } catch (Exception e) {

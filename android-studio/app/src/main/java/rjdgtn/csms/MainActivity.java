@@ -238,9 +238,16 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 itemName.equals("status") ||
                 itemName.equals("reboot_remote") ||
                 itemName.equals("restart_remote") ||
-                itemName.equals("test") ) {
+                itemName.equals("test") ||
+                itemName.equals("ringup_local_start") ||
+                itemName.equals("ringup_local_stop") ||
+                itemName.equals("ringup_remote_start") ||
+                itemName.equals("ringup_remote_stop") ) {
             WorkerService.send(getApplicationContext(), new HashMap<String, String>() {{ put("code",itemName); }});
         }
+//        else if (itemName.equals("ringup_local") || itemName.equals("ringup_remote")) {
+//
+//        }
 
         return true;
     }

@@ -86,12 +86,24 @@ public class LauncherService extends Service {
 
 
     public void onDestroy() {
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("ring");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("ringup_stop");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
         {
             Intent intent = new Intent(this, WorkerService.class);
             intent.setAction("start");
             PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
 
-            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
             am.cancel(pIntent1);
 
         }

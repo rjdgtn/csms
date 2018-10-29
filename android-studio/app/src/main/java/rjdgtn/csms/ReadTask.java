@@ -11,6 +11,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -186,4 +188,22 @@ public class ReadTask implements Runnable {
         audioRecord.stop();
         log("stop");
     }
+
+//    public int getSleepIntervalMinutes() throws FileNotFoundException {
+//        File file = new File(Environment.getExternalStorageDirectory() + "/CSMS/sleepInterval.txt");
+//        if (file.exists()) {
+//            FileReader in = new FileReader(file);
+//            in.read();
+//        }
+//
+//        return 10;
+//    }
+//    File file = new File(Environment.getExternalStorageDirectory() + "/CSMS/log.txt");
+//                if (!file.exists()) {
+//        File directory = new File(Environment.getExternalStorageDirectory() + "/CSMS");
+//        directory.mkdirs();
+//        file.createNewFile();
+//    }
+//
+//    FileWriter out = new FileWriter(file, true);
 }

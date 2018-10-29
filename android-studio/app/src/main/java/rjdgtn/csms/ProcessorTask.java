@@ -1,6 +1,8 @@
 package rjdgtn.csms;
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -50,6 +52,8 @@ public class ProcessorTask implements Runnable {
     private final byte GET_SMS_REQUEST_COMMAND = 77;
     private final byte GET_SMS_ANSWER_COMMAND = 88;
     private final byte SEND_SMS_REQUEST_COMMAND = 99;
+    private final byte RINGUP_START_COMMAND = 101;
+    private final byte RINGUP_STOP_COMMAND = 105;
     private final byte SEND_SMS_ANSWER_COMMAND = 111;
     private final byte REBOOT_COMMAND = 122;
 
@@ -79,15 +83,17 @@ public class ProcessorTask implements Runnable {
         try {
             SmsUtils.activateReceiver(contex, true);
             while (true) {
-                if (!TransportTask.inQueue.isEmpty()) {
-                    onRemoteCommand(TransportTask.inQueue.take());
-                } else if (!localCommands.isEmpty()) {
-                    onLocalCommand(localCommands.take());
-                }
-                SmsUtils.update(contex);
+                do {
+                    if (!TransportTask.inQueue.isEmpty()) {
+                        onRemoteCommand(TransportTask.inQueue.take());
+                    } else if (!localCommands.isEmpty()) {
+                        onLocalCommand(localCommands.take());
+                    }
+                    SmsUtils.update(contex);
+                    Thread.sleep(500);
+                } while ( (!TransportTask.inQueue.isEmpty() || !localCommands.isEmpty()) );
 
                 if (WorkerService.idleMode.get()) Thread.sleep(5000);
-                else Thread.sleep(500);
             }
         } catch (Exception e) {
             log("crash");
@@ -123,6 +129,12 @@ public class ProcessorTask implements Runnable {
         else if (code.equals("new_sms")) onLocalNewSms(command);
         else if (code.equals("idle")) onLocalIdle(command);
         else if (code.equals("check_sms_local")) onLocalCheckSmsLocal(command);
+        else if (code.equals("ring")) onLocalRing(command);
+        else if (code.equals("ringup_stop")) onLocalRingupLocalStop(command);
+        else if (code.equals("ringup_local_start")) onLocalRingupLocalStart(command);
+        else if (code.equals("ringup_local_stop")) onLocalRingupLocalStop(command);
+        else if (code.equals("ringup_remote_start")) onLocalRingupRemoteStart(command);
+        else if (code.equals("ringup_remote_stop")) onLocalRingupRemoteStop(command);
 
         lastLocalCommand = command;
     }
@@ -143,6 +155,72 @@ public class ProcessorTask implements Runnable {
         if (code == GET_SMS_REQUEST_COMMAND) onRemoteGetSms(inputStream);
         if (code == GET_SMS_ANSWER_COMMAND) onRemoteGetSmsAnswer(inputStream);
         if (code == REBOOT_COMMAND) onRemoteReboot(inputStream);
+        if (code == RINGUP_START_COMMAND) onRemoteRingupStart(inputStream);
+        if (code == RINGUP_STOP_COMMAND) onRemoteRingupStop(inputStream);
+    }
+
+    private void onLocalRing(Bundle command) throws InterruptedException {
+        String msg = command.getString("msg");
+        if (!msg.isEmpty() && WorkerService.idleMode.get()) {
+            log("ring \"" + msg +  "\"");
+            SendTask.outQueue.put(msg);
+        }
+    }
+
+    private void onLocalRingupLocalStart(Bundle command) throws InterruptedException {
+        ringupStart("1818181");
+    }
+
+    private void ringupStart(String msg) throws InterruptedException {
+        AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
+
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ring");
+            intent.putExtra("code", "ring");
+            intent.putExtra("msg", msg);
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2 * 1000, 2 * /*60 **/ 1000, pIntent1);
+        }
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ringup_stop");
+            intent.putExtra("code", "ringup_stop");
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 16 /* 60 * 60*/ * 1000, pIntent1);
+        }
+    }
+
+    private void onLocalRingupLocalStop(Bundle command) throws InterruptedException {
+        ringupStop();
+    }
+
+    private void ringupStop() throws InterruptedException {
+        AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ring");
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ringup_stop");
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+    }
+
+    private void onLocalRingupRemoteStart(Bundle command) throws InterruptedException, IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(RINGUP_START_COMMAND);
+        sendToRemotePhone(outputStream.toByteArray());
+    }
+
+    private void onLocalRingupRemoteStop(Bundle command) throws InterruptedException, IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(RINGUP_STOP_COMMAND);
+        sendToRemotePhone(outputStream.toByteArray());
     }
 
     private void onLocalCheckSmsLocal(Bundle command) throws InterruptedException {
@@ -159,6 +237,18 @@ public class ProcessorTask implements Runnable {
 
     private void onLocalIdle(Bundle command) throws InterruptedException {
         TransportTask.outQueue.put(new OutRequest("idle"));
+    }
+
+    private void onRemoteRingupStart(ByteArrayInputStream stream) throws IOException, InterruptedException {
+        String msg = "333777333777";
+        if (stream.available() > 0) {
+            msg = readString(stream, 0);
+        }
+        ringupStart(msg);
+    }
+
+    private void onRemoteRingupStop(ByteArrayInputStream stream) throws InterruptedException {
+        ringupStop();
     }
 
     private void onRemoteGetSmsAnswer(ByteArrayInputStream stream) throws InterruptedException, IOException {
