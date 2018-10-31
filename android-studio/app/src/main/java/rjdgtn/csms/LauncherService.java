@@ -103,9 +103,14 @@ public class LauncherService extends Service {
             Intent intent = new Intent(this, WorkerService.class);
             intent.setAction("start");
             PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
-
             am.cancel(pIntent1);
 
+        }
+        {
+            Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("start from launcher");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
         }
         WorkerService.stop(getApplicationContext());
         super.onDestroy();
