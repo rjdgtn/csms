@@ -68,14 +68,14 @@ public class ReadTask implements Runnable {
             PowerManager powerManager = (PowerManager) contex.getSystemService(contex.POWER_SERVICE);
 
             while (true) {
-                SendTask.outQueue.put("D9");
+                SendTask.outQueue.put("D1");
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "READ_WAKE_LOCK " + i);
                 wakeLock.acquire();
                 readLoop();
 
                 Calendar calendar = Calendar.getInstance();
                 int curMin = calendar.get(calendar.MINUTE);
-                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/10.0)*10;
+                int nextTenMinutes = (int)Math.ceil((curMin+0.1)/5.0)*5;
                 calendar.set(calendar.MINUTE, nextTenMinutes);
                 calendar.set(calendar.SECOND, 0);
                 calendar.set(calendar.MILLISECOND, 0);
