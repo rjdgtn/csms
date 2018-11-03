@@ -180,7 +180,7 @@ public class ReadTask implements Runnable {
 
             }
 
-            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 15 * 1000) {
+            if (WorkerService.idleMode.get() && System.currentTimeMillis() - startLoopTime > 30 * 1000) {
                 break;
             }
         }

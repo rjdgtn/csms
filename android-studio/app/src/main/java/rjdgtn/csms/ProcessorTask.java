@@ -141,7 +141,10 @@ public class ProcessorTask implements Runnable {
 
     private void onRemoteCommand(byte[] data) throws InterruptedException, IOException {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
-        if (inputStream.available() == 0) return;
+        if (inputStream.available() == 0) {
+            log("no code");
+            return;
+        }
         byte code = (byte)inputStream.read();
         if (code == ECHO_COMMAND) onRemoteEcho(inputStream);
         if (code == CONFIG_SPEED_COMMAND) onRemoteConfigSpeed(inputStream);
@@ -172,6 +175,7 @@ public class ProcessorTask implements Runnable {
     }
 
     private void ringupStart(String msg) throws InterruptedException {
+        log("ringup start");
         AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
 
         {
@@ -180,14 +184,14 @@ public class ProcessorTask implements Runnable {
             intent.putExtra("code", "ring");
             intent.putExtra("msg", msg);
             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
-            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2 * 1000, 2 * /*60 **/ 1000, pIntent1);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 1000, 4 * 60 *  1000, pIntent1);
         }
         {
             Intent intent = new Intent(contex, WorkerService.class);
             intent.setAction("ringup_stop");
             intent.putExtra("code", "ringup_stop");
             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
-            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 16 /* 60 * 60*/ * 1000, pIntent1);
+            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 16 * 60 * 60 * 1000, pIntent1);
         }
     }
 
@@ -196,6 +200,7 @@ public class ProcessorTask implements Runnable {
     }
 
     private void ringupStop() throws InterruptedException {
+        log("ringup stop");
         AlarmManager am = (AlarmManager) contex.getSystemService(contex.ALARM_SERVICE);
         {
             Intent intent = new Intent(contex, WorkerService.class);
@@ -245,6 +250,7 @@ public class ProcessorTask implements Runnable {
             msg = readString(stream, 0);
         }
         ringupStart(msg);
+        TransportTask.outQueue.put(new OutRequest("idle"));
     }
 
     private void onRemoteRingupStop(ByteArrayInputStream stream) throws InterruptedException {
