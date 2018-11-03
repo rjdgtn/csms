@@ -258,6 +258,13 @@ public class WorkerService extends Service {
                             intent.getAction().equals("ringup_stop"))
                         && intent.getExtras().getString("code") != null) {
                     ProcessorTask.localCommands.put(intent.getExtras());
+                    if (intent.getAction().equals("ring")) {
+                        try {
+                            Thread.sleep(1500);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             } catch (Exception e) {
                 log("crash");

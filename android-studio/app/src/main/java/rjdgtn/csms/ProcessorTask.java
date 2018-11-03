@@ -93,7 +93,7 @@ public class ProcessorTask implements Runnable {
                     Thread.sleep(500);
                 } while ( (!TransportTask.inQueue.isEmpty() || !localCommands.isEmpty()) );
 
-                if (WorkerService.idleMode.get()) Thread.sleep(5000);
+                //if (WorkerService.idleMode.get()) Thread.sleep(1000);
             }
         } catch (Exception e) {
             log("crash");
@@ -184,7 +184,7 @@ public class ProcessorTask implements Runnable {
             intent.putExtra("code", "ring");
             intent.putExtra("msg", msg);
             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
-            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 1000, 4 * 60 *  1000, pIntent1);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 1000, 2 * 60 *  1000, pIntent1);
         }
         {
             Intent intent = new Intent(contex, WorkerService.class);
