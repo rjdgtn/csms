@@ -420,6 +420,7 @@ public class WorkerService extends Service {
 
         int level = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
         int scale = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1) : -1;
+        int voltage = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) : -1;
 
         float batteryPct = level / (float) scale;
 
@@ -432,7 +433,7 @@ public class WorkerService extends Service {
                 ? powerManager.isInteractive()
                 : powerManager.isScreenOn();
 
-        log("battery:" + batteryPct + (isCharging ? " charging" : "") + (screen ? " screen" : "" ));
+        log("battery: " + batteryPct + " v: " + voltage + (isCharging ? " charging" : "") + (screen ? " screen" : "" ));
     }
 
 
