@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <item android:title="idle" />
     <item android:title="wake" />
     <item android:title="status" />
     <item android:title="config_speed" />
@@ -14,8 +15,8 @@
             <item android:title="check_sms_local" />
         </menu>
     </item>
-    <item android:title="utils_menu" >
-        <menu >
+    <item android:title="ring_menu">
+        <menu>
             <item android:title="ringup_local_start" />
             <item android:title="ringup_local_stop" />
             <item android:title="ringup_remote_start" />
@@ -27,7 +28,6 @@
             <item android:title="config_speed_local" />
             <item android:title="echo" />
             <item android:title="test" />
-            <item android:title="idle" />
             <item android:title="logs" />
             <item android:title="restart_remote" />
             <item android:title="reboot_remote" />
