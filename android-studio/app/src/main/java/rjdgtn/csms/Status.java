@@ -47,6 +47,8 @@ public class Status implements Serializable {
 
         status.inbox = (short)SmsUtils.getMaxInbox(context);
 
+        status.lastInService =  (byte) Math.min(255, (System.currentTimeMillis() - MyPhoneStateListener.getLastInService()) / (1000 * 30 * 60));
+
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = context.registerReceiver(null, iFilter);
 
@@ -79,6 +81,7 @@ public class Status implements Serializable {
         voltage = ((voltageByte) & 0xFF) * 2;
         gsm = buffer.get();
         sim = buffer.get();
+        lastInService = buffer.get();
         inbox = buffer.getShort();
         byte v = buffer.get();
         wifi = (v & 0b1) > 0;
@@ -89,12 +92,13 @@ public class Status implements Serializable {
     }
 
     byte[] toBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
+        ByteBuffer buffer = ByteBuffer.allocate(9);
         buffer.put(uptime);
         buffer.put(power);
         buffer.put((byte)(voltage/2));
         buffer.put(gsm);
         buffer.put(sim);
+        buffer.put(lastInService);
         buffer.putShort(inbox);
         buffer.put((byte)(0 | (wifi ? 0b1 : 0b0)
                             | (bluetooth ? 0b10 : 0b00)
@@ -134,11 +138,12 @@ public class Status implements Serializable {
         List<String> list = new ArrayList<String>();
 
         list.add("\tStatus:");
-        list.add("\tuptime: " + uptime / 2 + " hours");
+        list.add("\tuptime: " + (uptime & 0xFF) / 2.0 + " hours");
         list.add("\tpower: " + power);
         list.add("\tvoltage: " + voltage);
         list.add("\tgsm: " + gsm + " " + getGsmLevelStrign());
         list.add("\tsim: " + sim + " " + getSimStrign());
+        list.add("\tin service: " + (lastInService & 0xFF) / 2.0 + " hours ago");
         list.add("\tinbox: " + inbox + " " + (inbox > SmsStorage.getMaxSmsInboxId() ? "NEW" : "readed"));
         list.add("\tgps: " + location);
         list.add("\twifi: " + wifi);
@@ -150,11 +155,12 @@ public class Status implements Serializable {
         return list;
     }
 
-    byte uptime = 0; //halfhours
+    byte uptime = 0; // halfhours
     byte power = 0;
     int voltage = 0;
     byte gsm = 0;
     byte sim = 0;
+    byte lastInService = 0; // halfhours
     short inbox = 0;
     boolean wifi = false;
     boolean bluetooth = false;

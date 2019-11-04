@@ -24,12 +24,16 @@ public class MyPhoneStateListener extends PhoneStateListener {
 
     static private boolean inService = false;
     static private byte signalStrength = 0;
+    static private long lastInService = 0;
+    static public long getLastInService() { return lastInService; }
     static public byte getSignalStrength() { return inService ? signalStrength : 0; }
 
     @Override
     public void onSignalStrengthsChanged(SignalStrength signalStrength) {
         super.onSignalStrengthsChanged(signalStrength);
         MyPhoneStateListener.signalStrength = (byte) signalStrength.getGsmSignalStrength();
+        if (inService && MyPhoneStateListener.signalStrength > 0)
+            lastInService = System.currentTimeMillis();
         log(context, "signalStrength: " + MyPhoneStateListener.getSignalStrength());
     }
 
@@ -37,6 +41,8 @@ public class MyPhoneStateListener extends PhoneStateListener {
     public void onServiceStateChanged (ServiceState serviceState) {
         super.onServiceStateChanged(serviceState);
         inService = (serviceState.getState() == ServiceState.STATE_IN_SERVICE);
+        if (inService && signalStrength > 0)
+            lastInService = System.currentTimeMillis();
         log(context, "signalStrength: " + MyPhoneStateListener.getSignalStrength());
     }
 

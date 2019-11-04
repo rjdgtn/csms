@@ -236,6 +236,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 itemName.equals("idle") ||
                 itemName.equals("check_sms_local") ||
                 itemName.equals("status") ||
+                itemName.equals("status_local") ||
                 itemName.equals("reboot_remote") ||
                 itemName.equals("restart_remote") ||
                 itemName.equals("test") ||
