@@ -456,7 +456,7 @@ public class TransportTask  implements Runnable {
                     }
                 }
 
-                if (state == State.READ && lastEventTime + 5 * 60 * 1000 < System.currentTimeMillis()) {
+                if (state == State.READ && lastEventTime + 9 * 60 * 1000 < System.currentTimeMillis()) {
                     setCallDuration((short)315);
                     sleep(50);
                     WorkerService.idleMode.set(true);
