@@ -45,6 +45,8 @@ public class Status implements Serializable {
         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         status.sim = (byte)(telephonyManager != null ? telephonyManager.getSimState() : 0);
 
+        status.inbox = (short)SmsUtils.getMaxInbox(context);
+
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = context.registerReceiver(null, iFilter);
 
@@ -77,6 +79,7 @@ public class Status implements Serializable {
         voltage = ((voltageByte) & 0xFF) * 2;
         gsm = buffer.get();
         sim = buffer.get();
+        inbox = buffer.getShort();
         byte v = buffer.get();
         wifi = (v & 0b1) > 0;
         bluetooth = (v & 0b10) > 0;
@@ -86,12 +89,13 @@ public class Status implements Serializable {
     }
 
     byte[] toBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(6);
+        ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.put(uptime);
         buffer.put(power);
         buffer.put((byte)(voltage/2));
         buffer.put(gsm);
         buffer.put(sim);
+        buffer.putShort(inbox);
         buffer.put((byte)(0 | (wifi ? 0b1 : 0b0)
                             | (bluetooth ? 0b10 : 0b00)
                             | (location ? 0b100 : 0b000)
@@ -135,6 +139,7 @@ public class Status implements Serializable {
         list.add("\tvoltage: " + voltage);
         list.add("\tgsm: " + gsm + " " + getGsmLevelStrign());
         list.add("\tsim: " + sim + " " + getSimStrign());
+        list.add("\tinbox: " + inbox + " " + (inbox > SmsStorage.getMaxSmsInboxId() ? "NEW" : "readed"));
         list.add("\tgps: " + location);
         list.add("\twifi: " + wifi);
         list.add("\tcharging: " + charging);
@@ -150,6 +155,7 @@ public class Status implements Serializable {
     int voltage = 0;
     byte gsm = 0;
     byte sim = 0;
+    short inbox = 0;
     boolean wifi = false;
     boolean bluetooth = false;
     boolean location = false;

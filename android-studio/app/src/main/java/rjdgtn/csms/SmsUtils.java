@@ -62,6 +62,21 @@ public class SmsUtils  {
         return res;
     }
 
+    public static int getMaxInbox(Context context) {
+        Cursor cursor = context.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, Telephony.Sms._ID);
+        int smsIndex = 0;
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    smsIndex = Math.max(smsIndex, cursor.getInt(cursor.getColumnIndex(Telephony.Sms._ID)));
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            cursor.close();
+        }
+        return smsIndex;
+    }
+
     public static short send(Context context, String number, String message) throws InterruptedException {
         disableAirplaneForSeconds(context, (5 * 60) + 110 + 30 * 10);
 
