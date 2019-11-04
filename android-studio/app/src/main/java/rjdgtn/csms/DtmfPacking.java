@@ -59,8 +59,8 @@ public class DtmfPacking {
             res[i+1] = packWithCheck(block);
         }
 
-        res[0] = "#B*";
-        res[blockNum+1] = "#C*";
+        res[0] = "#B**";
+        res[blockNum+1] = "#C**";
 
 //        char[] myNameChars = res[1].toCharArray();
 //        myNameChars[4] = '#';
@@ -135,7 +135,7 @@ public class DtmfPacking {
 
 //        if (checksum >= prevVal) checksum++;
 //        res += intToSymbol[checksum];
-        res += '*';
+        res += "**";
 
 //        Log.d("MY CSMS:", origRes);
 
