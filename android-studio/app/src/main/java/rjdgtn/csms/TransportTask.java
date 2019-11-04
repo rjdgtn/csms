@@ -38,10 +38,11 @@ public class TransportTask  implements Runnable {
             75,
             55,
             40,
-            30};
+            30,
+            25};
 
     public class TransportPrefs {
-        public byte bytesPerPack = 16;
+        public byte bytesPerPack = 64;
         public short signalDuration = 0;
         public short confirmWait = 0;
         public short controlDelay = 0;
