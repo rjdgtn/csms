@@ -63,12 +63,15 @@ public class SmsUtils  {
     }
 
     public static short send(Context context, String number, String message) throws InterruptedException {
-        disableAirplaneForSeconds(context, 55 + 55 + 5 * 10);
+        disableAirplaneForSeconds(context, (5 * 60) + 110 + 30 * 10);
 
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep((i+1)*1000);
+        for (int i = 0; i < 5 * 60; i++) {
+            Thread.sleep((i)*1000);
             if (MyPhoneStateListener.getSignalStrength() > 0) break;
         }
+
+        if (MyPhoneStateListener.getSignalStrength() == 0)
+            return 0;
 
         long sendTime = System.currentTimeMillis();
 
@@ -80,7 +83,7 @@ public class SmsUtils  {
             Message messageObj = new Message(message, number);
             sendTransaction.sendNewMessage(messageObj, Thread.currentThread().getId());
 
-            Thread.sleep(5000 + (i+1)*1000);
+            Thread.sleep(10000 + (i+1)*2000);
             String where = String.format("%s=\"%s\" AND %s=\"%s\" AND %s>%d"
                     , Telephony.Sms.BODY, message
                     , Telephony.Sms.ADDRESS, number
