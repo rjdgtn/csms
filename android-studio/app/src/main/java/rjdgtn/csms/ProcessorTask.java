@@ -396,7 +396,7 @@ public class ProcessorTask implements Runnable {
         ByteBuffer bbuf =  ByteBuffer.wrap(buf, 0, buf.length);
         Status status = new Status(bbuf);
 
-        for (String str : Status.make(contex).description()) {
+        for (String str : status.description()) {
             log(str);
         }
     }

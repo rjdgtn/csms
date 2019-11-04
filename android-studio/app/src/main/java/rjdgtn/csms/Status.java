@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static android.telephony.TelephonyManager.*;
+
 public class Status implements Serializable {
     static Status make(Context context) {
         Status status = new Status();
@@ -39,6 +41,9 @@ public class Status implements Serializable {
         }
 
         status.airplane = AirplaneMode.isFlightModeEnabled(context);
+
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        status.sim = (byte)(telephonyManager != null ? telephonyManager.getSimState() : 0);
 
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = context.registerReceiver(null, iFilter);
@@ -71,6 +76,7 @@ public class Status implements Serializable {
         byte voltageByte = buffer.get();
         voltage = ((voltageByte) & 0xFF) * 2;
         gsm = buffer.get();
+        sim = buffer.get();
         byte v = buffer.get();
         wifi = (v & 0b1) > 0;
         bluetooth = (v & 0b10) > 0;
@@ -80,11 +86,12 @@ public class Status implements Serializable {
     }
 
     byte[] toBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(5);
+        ByteBuffer buffer = ByteBuffer.allocate(6);
         buffer.put(uptime);
         buffer.put(power);
         buffer.put((byte)(voltage/2));
         buffer.put(gsm);
+        buffer.put(sim);
         buffer.put((byte)(0 | (wifi ? 0b1 : 0b0)
                             | (bluetooth ? 0b10 : 0b00)
                             | (location ? 0b100 : 0b000)
@@ -105,6 +112,20 @@ public class Status implements Serializable {
         return gsmLevel;
     }
 
+    String getSimStrign() {
+        if (sim == SIM_STATE_UNKNOWN) return "UNKNOWN";
+        if (sim == SIM_STATE_ABSENT) return "ABSENT";
+        if (sim == SIM_STATE_PIN_REQUIRED) return "PIN_REQUIRED";
+        if (sim == SIM_STATE_PUK_REQUIRED) return "PUK_REQUIRED";
+        if (sim == SIM_STATE_NETWORK_LOCKED) return "NETWORK_LOCKED";
+        if (sim == SIM_STATE_READY) return "READY";
+        if (sim == SIM_STATE_NOT_READY) return "NOT_READY";
+        if (sim == SIM_STATE_PERM_DISABLED) return "READY";
+        if (sim == SIM_STATE_READY) return "PERM_DISABLED";
+        if (sim == SIM_STATE_CARD_IO_ERROR) return "CARD_IO_ERROR";
+        else return "invalid value";
+    }
+
     List<String> description() {
         List<String> list = new ArrayList<String>();
 
@@ -113,6 +134,7 @@ public class Status implements Serializable {
         list.add("\tpower: " + power);
         list.add("\tvoltage: " + voltage);
         list.add("\tgsm: " + gsm + " " + getGsmLevelStrign());
+        list.add("\tsim: " + sim + " " + getSimStrign());
         list.add("\tgps: " + location);
         list.add("\twifi: " + wifi);
         list.add("\tcharging: " + charging);
@@ -127,6 +149,7 @@ public class Status implements Serializable {
     byte power = 0;
     int voltage = 0;
     byte gsm = 0;
+    byte sim = 0;
     boolean wifi = false;
     boolean bluetooth = false;
     boolean location = false;
