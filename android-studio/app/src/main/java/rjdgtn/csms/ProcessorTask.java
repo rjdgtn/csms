@@ -66,6 +66,10 @@ public class ProcessorTask implements Runnable {
     public ProcessorTask(Context contex) {
         this.contex = contex;
         Log.d("MY PRCS", "create");
+
+        for (String str : Status.make(contex).description()) {
+            log(str);
+        }
     }
 
     private void log(String str) {
@@ -392,14 +396,9 @@ public class ProcessorTask implements Runnable {
         ByteBuffer bbuf =  ByteBuffer.wrap(buf, 0, buf.length);
         Status status = new Status(bbuf);
 
-        log("\tStatus:");
-        log("\tuptime: " + status.uptime / 2 + " hours");
-        log("\tpower: " + status.power);
-        log("\tgsm: " + status.gsm + " " + status.getGsmLevelStrign());
-        log("\tgps: " + status.location);
-        log("\twifi: " + status.wifi);
-        log("\tcharging: " + status.charging);
-        log("\tbluetooth: " + status.bluetooth);
+        for (String str : Status.make(contex).description()) {
+            log(str);
+        }
     }
 
     private void onLocalConfigSpeed(Bundle command) throws InterruptedException, IOException {

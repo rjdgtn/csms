@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Status implements Serializable {
     static Status make(Context context) {
@@ -47,6 +50,10 @@ public class Status implements Serializable {
 
         status.power = (byte) Math.min(255, (batteryPct * 100));
 
+        int voltage = batteryStatus != null ? batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) : -1;
+
+        status.voltage = voltage/10;
+
         status.uptime = (byte) Math.min(255, (System.currentTimeMillis() - WorkerService.launchTime) / (1000 * 30 * 60));
 
         status.charging = Power.isConnected(context);
@@ -61,6 +68,8 @@ public class Status implements Serializable {
     Status (ByteBuffer buffer) {
         uptime = buffer.get();
         power = buffer.get();
+        byte voltageByte = buffer.get();
+        voltage = ((voltageByte) & 0xFF) * 2;
         gsm = buffer.get();
         byte v = buffer.get();
         wifi = (v & 0b1) > 0;
@@ -71,9 +80,10 @@ public class Status implements Serializable {
     }
 
     byte[] toBytes() {
-        ByteBuffer buffer = ByteBuffer.allocate(4);
+        ByteBuffer buffer = ByteBuffer.allocate(5);
         buffer.put(uptime);
         buffer.put(power);
+        buffer.put((byte)(voltage/2));
         buffer.put(gsm);
         buffer.put((byte)(0 | (wifi ? 0b1 : 0b0)
                             | (bluetooth ? 0b10 : 0b00)
@@ -95,8 +105,27 @@ public class Status implements Serializable {
         return gsmLevel;
     }
 
+    List<String> description() {
+        List<String> list = new ArrayList<String>();
+
+        list.add("\tStatus:");
+        list.add("\tuptime: " + uptime / 2 + " hours");
+        list.add("\tpower: " + power);
+        list.add("\tvoltage: " + voltage);
+        list.add("\tgsm: " + gsm + " " + getGsmLevelStrign());
+        list.add("\tgps: " + location);
+        list.add("\twifi: " + wifi);
+        list.add("\tcharging: " + charging);
+        list.add("\tbluetooth: " + bluetooth);
+
+        Collections.reverse(list);
+
+        return list;
+    }
+
     byte uptime = 0; //halfhours
     byte power = 0;
+    int voltage = 0;
     byte gsm = 0;
     boolean wifi = false;
     boolean bluetooth = false;
