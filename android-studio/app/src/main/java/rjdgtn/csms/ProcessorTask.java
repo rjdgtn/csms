@@ -247,7 +247,7 @@ public class ProcessorTask implements Runnable {
     }
 
     private void onLocalCheckSmsLocal(Bundle command) throws InterruptedException {
-        SmsUtils.disableAirplaneForSeconds(contex, 5 * 60);
+        SmsUtils.disableAirplaneForSeconds(contex, 9 * 60);
     }
 
     private void onLocalNewSms(Bundle command) throws InterruptedException {

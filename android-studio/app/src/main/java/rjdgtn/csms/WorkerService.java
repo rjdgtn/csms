@@ -176,7 +176,7 @@ public class WorkerService extends Service {
         }
 
         {
-            int[] hours = {9, 12, 16, 19, 23};
+            int[] hours = {9, 12, 14, 16, 18, 20, 22, 24};
             Calendar calendar = Calendar.getInstance();
             int curHour = calendar.get(Calendar.HOUR_OF_DAY);
             int curDay = calendar.get(Calendar.DAY_OF_YEAR);
