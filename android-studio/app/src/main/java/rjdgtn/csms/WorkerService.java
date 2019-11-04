@@ -232,9 +232,9 @@ public class WorkerService extends Service {
         if (intent != null && intent.getExtras() != null && intent.getAction() != null) {
             try {
                 log("command " + intent.getAction());
-                if (intent.getAction().contains("wake")) {
+                if (intent.getAction().contains("wake") || intent.getAction().equals("ring_impl")) {
                     try {
-                        Thread.sleep(100);
+                        Thread.sleep(200);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -258,13 +258,6 @@ public class WorkerService extends Service {
                             intent.getAction().equals("ringup_stop"))
                         && intent.getExtras().getString("code") != null) {
                     ProcessorTask.localCommands.put(intent.getExtras());
-                    if (intent.getAction().equals("ring")) {
-                        try {
-                            Thread.sleep(1500);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
                 }
             } catch (Exception e) {
                 log("crash");

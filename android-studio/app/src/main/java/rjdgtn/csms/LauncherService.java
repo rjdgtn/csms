@@ -95,6 +95,12 @@ public class LauncherService extends Service {
         }
         {
             Intent intent = new Intent(this, WorkerService.class);
+            intent.setAction("ring_impl");
+            PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+        {
+            Intent intent = new Intent(this, WorkerService.class);
             intent.setAction("ringup_stop");
             PendingIntent pIntent1 = PendingIntent.getService(this, 0, intent, 0);
             am.cancel(pIntent1);

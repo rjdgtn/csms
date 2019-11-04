@@ -56,7 +56,7 @@ public class SendTask implements Runnable {
             while(true) {
                 writeLoop();
                 while(WorkerService.idleMode.get() && outQueue.isEmpty()) {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 }
             }
         } catch (Exception e) {

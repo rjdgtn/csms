@@ -90,7 +90,7 @@ public class ProcessorTask implements Runnable {
                         onLocalCommand(localCommands.take());
                     }
                     SmsUtils.update(contex);
-                    Thread.sleep(500);
+                    Thread.sleep(100);
                 } while ( (!TransportTask.inQueue.isEmpty() || !localCommands.isEmpty()) );
 
                 //if (WorkerService.idleMode.get()) Thread.sleep(1000);
@@ -186,6 +186,14 @@ public class ProcessorTask implements Runnable {
             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
             am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 1000, 2 * 60 *  1000, pIntent1);
         }
+
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ring_impl");
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 6 * 1000, 2 * 60 *  1000, pIntent1);
+        }
+
         {
             Intent intent = new Intent(contex, WorkerService.class);
             intent.setAction("ringup_stop");
@@ -205,6 +213,12 @@ public class ProcessorTask implements Runnable {
         {
             Intent intent = new Intent(contex, WorkerService.class);
             intent.setAction("ring");
+            PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
+            am.cancel(pIntent1);
+        }
+        {
+            Intent intent = new Intent(contex, WorkerService.class);
+            intent.setAction("ring_impl");
             PendingIntent pIntent1 = PendingIntent.getService(contex, 0, intent, 0);
             am.cancel(pIntent1);
         }
